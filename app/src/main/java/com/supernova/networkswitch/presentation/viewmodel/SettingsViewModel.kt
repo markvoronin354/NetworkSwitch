@@ -41,15 +41,32 @@ class SettingsViewModel @Inject constructor(
     
     init {
         checkAllCompatibility()
+        observePermissionStateChanges()
+    }
+
+    private fun observePermissionStateChanges() {
+        viewModelScope.launch {
+            networkControlRepository.observePermissionStateChanges().collect {
+                android.util.Log.d("NetworkSwitch", "SettingsViewModel: Permission state changed, re-checking all compatibility...")
+                kotlinx.coroutines.delay(100)
+                checkAllCompatibility()
+            }
+        }
     }
     
     fun updateControlMethod(method: ControlMethod) {
         viewModelScope.launch {
             preferencesRepository.setControlMethod(method)
+            networkControlRepository.resetConnections()
+            checkAllCompatibility()
+            if (method == ControlMethod.SHIZUKU) {
+                networkControlRepository.requestPermission(ControlMethod.SHIZUKU)
+            }
         }
     }
     
     fun retryCompatibilityCheck() {
+        networkControlRepository.requestPermission(ControlMethod.SHIZUKU)
         checkAllCompatibility()
     }
     

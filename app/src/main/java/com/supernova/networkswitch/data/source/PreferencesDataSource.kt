@@ -29,7 +29,7 @@ class PreferencesDataSource @Inject constructor(
         private const val DEFAULT_CONTROL_METHOD = "SHIZUKU"
         
         private val DEFAULT_MODE_A = NetworkMode.LTE_ONLY
-        private val DEFAULT_MODE_B = NetworkMode.NR_ONLY
+        private val DEFAULT_MODE_B = NetworkMode.NR_LTE
         private const val DEFAULT_NEXT_IS_B = true
     }
     

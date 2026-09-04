@@ -46,6 +46,11 @@ class SettingsActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.retryCompatibilityCheck()
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

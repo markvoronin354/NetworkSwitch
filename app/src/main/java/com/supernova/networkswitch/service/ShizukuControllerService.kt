@@ -165,14 +165,15 @@ class ShizukuControllerService() : IShizukuController.Stub() {
             for (m in methods) {
                 if (m.name == "getAllowedNetworkTypesForReason") {
                     try {
-                        val bitmask = if (m.parameterCount == 2) {
-                            m.invoke(iTelephony, subId, reasonUser) as Long
+                        val bitmaskResult = if (m.parameterCount == 2) {
+                            m.invoke(iTelephony, subId, reasonUser)
                         } else if (m.parameterCount == 3 && m.parameterTypes[2] == String::class.java) {
-                            m.invoke(iTelephony, subId, reasonUser, "com.android.phone") as Long
+                            m.invoke(iTelephony, subId, reasonUser, "com.android.phone")
                         } else {
                             continue
                         }
                         
+                        val bitmask = (bitmaskResult as? Number)?.toLong() ?: continue
                         val mode = mapBitmaskToNetworkMode(bitmask)
                         Log.i(TAG, "Shizuku: getCurrentNetworkMode(subId=$subId) via getAllowedNetworkTypesForReason -> $mode (bitmask=$bitmask)")
                         return mode
@@ -186,13 +187,14 @@ class ShizukuControllerService() : IShizukuController.Stub() {
             for (m in methods) {
                 if (m.name == "getPreferredNetworkType") {
                     try {
-                        val mode = if (m.parameterCount == 1) {
-                            m.invoke(iTelephony, subId) as Int
+                        val modeResult = if (m.parameterCount == 1) {
+                            m.invoke(iTelephony, subId)
                         } else if (m.parameterCount == 2 && m.parameterTypes[1] == String::class.java) {
-                            m.invoke(iTelephony, subId, "com.android.phone") as Int
+                            m.invoke(iTelephony, subId, "com.android.phone")
                         } else {
                             continue
                         }
+                        val mode = (modeResult as? Number)?.toInt() ?: continue
                         Log.i(TAG, "Shizuku: getCurrentNetworkMode(subId=$subId) via getPreferredNetworkType -> $mode")
                         return mode
                     } catch (_: Exception) {

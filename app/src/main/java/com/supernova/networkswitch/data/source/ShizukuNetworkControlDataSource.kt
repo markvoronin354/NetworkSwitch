@@ -11,6 +11,9 @@ import com.supernova.networkswitch.domain.model.NetworkMode
 import com.supernova.networkswitch.service.ShizukuControllerService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import rikka.shizuku.Shizuku
 import javax.inject.Inject
@@ -32,6 +35,52 @@ class  ShizukuNetworkControlDataSource @Inject constructor(
         private const val SHIZUKU_PERMISSION_REQUEST_ID = 8
     }
 
+    private val _shizukuPermissionStateChanged = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val shizukuPermissionStateChanged: kotlinx.coroutines.flow.SharedFlow<Unit> = _shizukuPermissionStateChanged.asSharedFlow()
+
+    override fun observePermissionStateChanges(): kotlinx.coroutines.flow.Flow<Unit> = shizukuPermissionStateChanged
+
+    private val permissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+        if (requestCode == SHIZUKU_PERMISSION_REQUEST_ID) {
+            android.util.Log.d("NetworkSwitch", "Shizuku permission result: $grantResult")
+            resetConnection()
+            _shizukuPermissionStateChanged.tryEmit(Unit)
+        }
+    }
+
+    private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
+        android.util.Log.d("NetworkSwitch", "Shizuku binder received")
+        resetConnection()
+        _shizukuPermissionStateChanged.tryEmit(Unit)
+    }
+
+    private val binderDeadListener = Shizuku.OnBinderDeadListener {
+        android.util.Log.d("NetworkSwitch", "Shizuku binder dead")
+        resetConnection()
+        _shizukuPermissionStateChanged.tryEmit(Unit)
+    }
+
+    init {
+        try {
+            Shizuku.addRequestPermissionResultListener(permissionResultListener)
+            Shizuku.addBinderReceivedListener(binderReceivedListener)
+            Shizuku.addBinderDeadListener(binderDeadListener)
+        } catch (e: Exception) {
+            android.util.Log.e("NetworkSwitch", "Error registering Shizuku listeners", e)
+        }
+    }
+
+    override fun requestPermission() {
+        try {
+            if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.d("NetworkSwitch", "Requesting Shizuku permission")
+                Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_ID)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("NetworkSwitch", "Failed to request Shizuku permission", e)
+        }
+    }
+
     override suspend fun checkCompatibility(subId: Int): CompatibilityState {
         return try {
             // Check if Shizuku service is running
@@ -47,6 +96,7 @@ class  ShizukuNetworkControlDataSource @Inject constructor(
             }
             
             if (permission != PackageManager.PERMISSION_GRANTED) {
+                requestPermission()
                 return CompatibilityState.PermissionDenied(com.supernova.networkswitch.domain.model.ControlMethod.SHIZUKU)
             }
             
@@ -95,7 +145,7 @@ class  ShizukuNetworkControlDataSource @Inject constructor(
     private fun hasPermissionAndService(): Boolean {
         return try {
             // Only check if service is already connected, don't call Shizuku APIs that might block
-            userService != null && _isConnected.value
+            userService != null && _isConnected.value && userService?.asBinder()?.pingBinder() == true
         } catch (e: Exception) {
             false
         }
@@ -107,13 +157,16 @@ class  ShizukuNetworkControlDataSource @Inject constructor(
     private suspend fun ensureServiceBinding(): Boolean {
         // Check permissions first
         if (!Shizuku.pingBinder() || Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+            resetConnection()
             return false
         }
         
-        // If service is already connected, return true
-        if (userService != null && _isConnected.value) {
+        // If service is already connected and binder is alive, return true
+        if (userService != null && _isConnected.value && userService?.asBinder()?.pingBinder() == true) {
             return true
         }
+        
+        resetConnection()
         
         // Bind service asynchronously with timeout
         return try {

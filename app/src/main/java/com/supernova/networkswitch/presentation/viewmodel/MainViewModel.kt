@@ -1,6 +1,5 @@
 package com.supernova.networkswitch.presentation.viewmodel
 
-import android.telephony.SubscriptionManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +27,8 @@ class MainViewModel @Inject constructor(
     private val toggleNetworkModeUseCase: ToggleNetworkModeUseCase,
     private val updateControlMethodUseCase: UpdateControlMethodUseCase,
     private val getToggleModeConfigUseCase: GetToggleModeConfigUseCase,
-    private val preferencesRepository: PreferencesRepository
+    private val preferencesRepository: PreferencesRepository,
+    private val networkControlRepository: com.supernova.networkswitch.domain.repository.NetworkControlRepository
 ) : ViewModel() {
     
     // Current control method selection
@@ -40,7 +40,7 @@ class MainViewModel @Inject constructor(
         private set
     
     // Toggle mode configuration
-    var toggleModeConfig by mutableStateOf(ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_ONLY))
+    var toggleModeConfig by mutableStateOf(ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_LTE))
         private set
     
     var isLoading by mutableStateOf(false)
@@ -52,11 +52,26 @@ class MainViewModel @Inject constructor(
 
     init {
         observeControlMethodPreference()
+        observePermissionStateChanges()
         loadToggleModeConfig()
         checkCompatibility()
         refreshNetworkState()
     }
     
+    /**
+     * Observe permission state changes (e.g. Shizuku permission granted)
+     */
+    private fun observePermissionStateChanges() {
+        viewModelScope.launch {
+            networkControlRepository.observePermissionStateChanges().collect {
+                android.util.Log.d("NetworkSwitch", "MainViewModel: Permission state changed, re-checking compatibility...")
+                kotlinx.coroutines.delay(100)
+                checkCompatibility()
+                refreshNetworkState()
+            }
+        }
+    }
+
     /**
      * Observe control method preference changes
      */
@@ -88,7 +103,11 @@ class MainViewModel @Inject constructor(
     private fun checkCompatibility() {
         viewModelScope.launch {
             compatibilityState = CompatibilityState.Pending
-            compatibilityState = checkCompatibilityUseCase()
+            val state = checkCompatibilityUseCase()
+            compatibilityState = state
+            if (state is CompatibilityState.Compatible) {
+                refreshNetworkState()
+            }
         }
     }
     
@@ -98,6 +117,7 @@ class MainViewModel @Inject constructor(
     fun switchToMethod(method: ControlMethod) {
         viewModelScope.launch {
             updateControlMethodUseCase(method)
+            networkControlRepository.requestPermission(method)
         }
     }
     
@@ -105,6 +125,7 @@ class MainViewModel @Inject constructor(
      * Retry compatibility check
      */
     fun retryCompatibilityCheck() {
+        networkControlRepository.requestPermission(selectedMethod)
         checkCompatibility()
     }
     
@@ -125,7 +146,7 @@ class MainViewModel @Inject constructor(
                 toggleModeConfig = getToggleModeConfigUseCase()
             } catch (e: Exception) {
                 // Use default configuration if loading fails
-                toggleModeConfig = ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_ONLY)
+                toggleModeConfig = ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_LTE)
             }
         }
     }
@@ -138,7 +159,7 @@ class MainViewModel @Inject constructor(
         
         isLoading = true
         viewModelScope.launch {
-            val subId = SubscriptionManager.getDefaultDataSubscriptionId()
+            val subId = com.supernova.networkswitch.util.Utils.getValidSubId()
             
             toggleNetworkModeUseCase(subId)
                 .onSuccess { newMode ->
@@ -166,7 +187,7 @@ class MainViewModel @Inject constructor(
      */
     private fun refreshNetworkState() {
         viewModelScope.launch {
-            val subId = SubscriptionManager.getDefaultDataSubscriptionId()
+            val subId = com.supernova.networkswitch.util.Utils.getValidSubId()
             
             getCurrentNetworkModeUseCase(subId)
                 .onSuccess { mode ->

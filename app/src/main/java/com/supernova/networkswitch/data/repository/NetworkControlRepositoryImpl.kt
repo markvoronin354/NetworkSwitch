@@ -23,7 +23,7 @@ class NetworkControlRepositoryImpl @Inject constructor(
     
     override suspend fun checkCompatibility(method: ControlMethod): CompatibilityState {
         val dataSource = getDataSource(method)
-        val subId = android.telephony.SubscriptionManager.getDefaultDataSubscriptionId()
+        val subId = com.supernova.networkswitch.util.Utils.getValidSubId()
         return dataSource.checkCompatibility(subId)
     }
 
@@ -54,6 +54,14 @@ class NetworkControlRepositoryImpl @Inject constructor(
     override suspend fun resetConnections() {
         rootDataSource.resetConnection()
         shizukuDataSource.resetConnection()
+    }
+
+    override fun requestPermission(method: ControlMethod) {
+        getDataSource(method).requestPermission()
+    }
+
+    override fun observePermissionStateChanges(): kotlinx.coroutines.flow.Flow<Unit> {
+        return shizukuDataSource.shizukuPermissionStateChanged
     }
 
     private fun getDataSource(method: ControlMethod): NetworkControlDataSource {

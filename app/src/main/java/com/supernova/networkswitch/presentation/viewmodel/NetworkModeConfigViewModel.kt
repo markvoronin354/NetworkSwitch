@@ -23,7 +23,7 @@ class NetworkModeConfigViewModel @Inject constructor(
 ) : ViewModel() {
     
     private val _currentConfig = MutableStateFlow(
-        ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_ONLY)
+        ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_LTE)
     )
     val currentConfig: StateFlow<ToggleModeConfig> = _currentConfig.asStateFlow()
     
@@ -44,7 +44,7 @@ class NetworkModeConfigViewModel @Inject constructor(
                 _currentConfig.value = config
             } catch (e: Exception) {
                 // Use default configuration if loading fails
-                _currentConfig.value = ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_ONLY)
+                _currentConfig.value = ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_LTE)
             }
         }
     }

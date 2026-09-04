@@ -9,4 +9,6 @@ interface NetworkControlDataSource {
     suspend fun setNetworkMode(subId: Int, mode: NetworkMode)
     fun isConnected(): Boolean
     fun resetConnection()
+    fun requestPermission() {}
+    fun observePermissionStateChanges(): kotlinx.coroutines.flow.Flow<Unit> = kotlinx.coroutines.flow.emptyFlow()
 }

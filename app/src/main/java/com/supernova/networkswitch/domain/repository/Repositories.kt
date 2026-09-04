@@ -29,6 +29,16 @@ interface NetworkControlRepository {
      * Reset connections - useful when switching control methods
      */
     suspend fun resetConnections()
+
+    /**
+     * Request permission for the given control method (e.g. Shizuku)
+     */
+    fun requestPermission(method: ControlMethod)
+
+    /**
+     * Observe permission or binder state changes
+     */
+    fun observePermissionStateChanges(): Flow<Unit>
 }
 
 /**

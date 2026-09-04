@@ -32,13 +32,15 @@ class NetworkTileService : TileService() {
     lateinit var preferencesRepository: PreferencesRepository
     
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var listeningJob: Job? = null
     
     private var currentNetworkMode: NetworkMode? = null
     private var toggleConfig: ToggleModeConfig? = null
 
     override fun onStartListening() {
         super.onStartListening()
-        serviceScope.launch {
+        listeningJob?.cancel()
+        listeningJob = serviceScope.launch {
             try {
                 // Observe toggle configuration changes
                 preferencesRepository.observeToggleModeConfig().collect { newConfig ->
@@ -53,7 +55,8 @@ class NetworkTileService : TileService() {
 
     override fun onStopListening() {
         super.onStopListening()
-        // Clean up any ongoing operations when tile becomes inactive
+        listeningJob?.cancel()
+        listeningJob = null
     }
 
     override fun onClick() {
@@ -79,7 +82,7 @@ class NetworkTileService : TileService() {
     }
 
     private fun performToggle() {
-        val subId = SubscriptionManager.getDefaultDataSubscriptionId()
+        val subId = com.supernova.networkswitch.util.Utils.getValidSubId()
         android.util.Log.d("NetworkSwitch", "Tile: performToggle for subId: $subId")
         
         // Use a more persistent scope to ensure work completes even if service is destroyed
@@ -105,7 +108,7 @@ class NetworkTileService : TileService() {
     }
 
     private suspend fun refreshNetworkState() {
-        val subId = SubscriptionManager.getDefaultDataSubscriptionId()
+        val subId = com.supernova.networkswitch.util.Utils.getValidSubId()
         
         try {
             getCurrentNetworkModeUseCase(subId)
