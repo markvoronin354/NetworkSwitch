@@ -51,6 +51,20 @@ enum class NetworkMode(val displayName: String, val value: Int) {
     NR_LTE_TDSCDMA_WCDMA("3G/4G/5G (NR/LTE/TD-SCDMA/WCDMA)", 31),
     NR_LTE_TDSCDMA_GSM_WCDMA("2G/3G/4G/5G (NR/LTE/TD-SCDMA/GSM/WCDMA)", 32),
     NR_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA("Global 5G + TD-SCDMA (All Networks)", 33);
+
+    /**
+     * Short display text for Quick Settings Tile.
+     * Displays single technology for single mode (e.g. "4G" for LTE) 
+     * or the highest generation technology for multi-mode (e.g. "5G" for 4G/5G).
+     */
+    val tileLabel: String
+        get() = when {
+            name.contains("NR") -> "5G"
+            name.contains("LTE") || name.contains("GLOBAL") -> "4G"
+            name.contains("WCDMA") || name.contains("UMTS") || name.contains("EVDO") || name.contains("TDSCDMA") -> "3G"
+            name.contains("GSM") || name.contains("CDMA") -> "2G"
+            else -> displayName
+        }
     
     companion object {
         /**

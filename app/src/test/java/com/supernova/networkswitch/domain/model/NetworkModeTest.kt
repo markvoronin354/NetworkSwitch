@@ -33,4 +33,20 @@ class NetworkModeTest {
         assertEquals("5G Only (NR)", NetworkMode.NR_ONLY.displayName)
         assertEquals("4G/5G (NR/LTE)", NetworkMode.NR_LTE.displayName)
     }
+
+    @Test
+    fun testNetworkModeTileLabel() {
+        // Single network modes
+        assertEquals("2G", NetworkMode.GSM_ONLY.tileLabel)
+        assertEquals("3G", NetworkMode.WCDMA_ONLY.tileLabel)
+        assertEquals("4G", NetworkMode.LTE_ONLY.tileLabel)
+        assertEquals("5G", NetworkMode.NR_ONLY.tileLabel)
+
+        // Multi-network modes (highest mode)
+        assertEquals("5G", NetworkMode.NR_LTE.tileLabel)
+        assertEquals("5G", NetworkMode.NR_LTE_GSM_WCDMA.tileLabel)
+        assertEquals("4G", NetworkMode.LTE_GSM_WCDMA.tileLabel)
+        assertEquals("4G", NetworkMode.LTE_WCDMA.tileLabel)
+        assertEquals("3G", NetworkMode.WCDMA_PREF.tileLabel)
+    }
 }

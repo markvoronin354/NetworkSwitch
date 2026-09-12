@@ -37,7 +37,7 @@ class PreferencesDataSourceTest {
         mockDataStore = mockk(relaxed = true)
         mockkStatic("androidx.datastore.preferences.core.PreferencesKt")
         coEvery { mockDataStore.edit(any()) } returns mockk()
-        preferencesDataSource = PreferencesDataSource(mockDataStore)
+        preferencesDataSource = PreferencesDataSource(mockDataStore, mockk(relaxed = true))
     }
 
     @After

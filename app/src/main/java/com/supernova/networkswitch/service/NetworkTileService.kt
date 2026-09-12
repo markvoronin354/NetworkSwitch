@@ -1,9 +1,14 @@
 package com.supernova.networkswitch.service
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.drawable.Icon
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import android.telephony.SubscriptionManager
-import com.supernova.networkswitch.domain.model.ControlMethod
+import android.util.Log
 import com.supernova.networkswitch.domain.model.NetworkMode
 import com.supernova.networkswitch.domain.model.ToggleModeConfig
 import com.supernova.networkswitch.domain.usecase.GetCurrentNetworkModeUseCase
@@ -123,6 +128,26 @@ class NetworkTileService : TileService() {
         }
     }
     
+    private fun createTextIcon(text: String): Icon {
+        val size = 128
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        
+        val paint = Paint().apply {
+            color = Color.WHITE
+            textSize = if (text.length <= 2) 72f else 48f
+            isAntiAlias = true
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.CENTER
+        }
+        
+        val x = size / 2f
+        val y = (size / 2f) - ((paint.descent() + paint.ascent()) / 2f)
+        canvas.drawText(text, x, y, paint)
+        
+        return Icon.createWithBitmap(bitmap)
+    }
+
     private fun updateTileState() {
         try {
             val tile = qsTile ?: return
@@ -131,20 +156,21 @@ class NetworkTileService : TileService() {
             if (config != null) {
                 tile.state = Tile.STATE_ACTIVE
                 
-                // Show current mode as label and next mode as subtitle
+                // Show current mode short label and next mode as subtitle
                 val currentMode = currentNetworkMode ?: config.getCurrentMode()
-                tile.label = currentMode.displayName
-                tile.subtitle = "Next: ${config.getNextMode().displayName}"
+                val modeLabel = currentMode.tileLabel
                 
-                // Update icon based on mode if needed
-                // tile.icon = Icon.createWithResource(this, R.drawable.ic_...)
+                tile.label = modeLabel
+                tile.subtitle = "Next: ${config.getNextMode().tileLabel}"
+                tile.icon = createTextIcon(modeLabel)
             } else {
                 tile.state = Tile.STATE_INACTIVE
                 tile.label = "Network Switch"
                 tile.subtitle = "Tap to load"
+                tile.icon = createTextIcon("N/A")
             }
             tile.updateTile()
-            android.util.Log.d("NetworkSwitch", "Tile: updateTileState finished")
+            Log.d("NetworkSwitch", "Tile: updateTileState finished with label: ${tile.label}")
         } catch (e: Exception) {
             android.util.Log.e("NetworkSwitch", "Tile: Failed to update tile state", e)
         }

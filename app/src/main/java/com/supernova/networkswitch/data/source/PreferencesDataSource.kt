@@ -1,5 +1,8 @@
 package com.supernova.networkswitch.data.source
 
+import android.content.ComponentName
+import android.content.Context
+import android.service.quicksettings.TileService
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -9,6 +12,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import com.supernova.networkswitch.domain.model.ControlMethod
 import com.supernova.networkswitch.domain.model.NetworkMode
 import com.supernova.networkswitch.domain.model.ToggleModeConfig
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -17,7 +21,8 @@ import javax.inject.Singleton
 
 @Singleton
 class PreferencesDataSource @Inject constructor(
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    @ApplicationContext private val context: Context
 ) {
     
     companion object {
@@ -77,6 +82,14 @@ class PreferencesDataSource @Inject constructor(
             preferences[TOGGLE_MODE_A_KEY] = config.modeA.value
             preferences[TOGGLE_MODE_B_KEY] = config.modeB.value
             preferences[TOGGLE_NEXT_IS_B_KEY] = config.nextModeIsB
+        }
+        try {
+            TileService.requestListeningState(
+                context,
+                ComponentName(context, "com.supernova.networkswitch.service.NetworkTileService")
+            )
+        } catch (_: Exception) {
+            // Tile request optional
         }
     }
     
