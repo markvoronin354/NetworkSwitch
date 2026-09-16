@@ -303,8 +303,8 @@ private fun AboutCard() {
             
             LinkItem(
                 title = "NetworkSwitch",
-                subtitle = "https://github.com/aunchagaonkar/NetworkSwitch",
-                link = "https://github.com/aunchagaonkar/NetworkSwitch"
+                subtitle = "https://github.com/markvoronin354/NetworkSwitch",
+                link = "https://github.com/markvoronin354/NetworkSwitch"
             )
             
             Spacer(modifier = Modifier.height(24.dp))
