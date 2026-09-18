@@ -7,6 +7,7 @@ import com.supernova.networkswitch.domain.model.ControlMethod
 import com.supernova.networkswitch.util.CoroutineTestRule
 import io.mockk.coEvery
 import androidx.datastore.preferences.core.edit
+import com.supernova.networkswitch.domain.model.WidgetCustomizationConfig
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -136,5 +137,32 @@ class PreferencesDataSourceTest {
         val result = preferencesDataSource.observeControlMethod().first()
 
         assertEquals(ControlMethod.SHIZUKU, result)
+    }
+
+    @Test
+    fun `getWidgetCustomizationConfig returns default values when empty`() = runTest {
+        val emptyPreferences = mockk<Preferences>(relaxed = true)
+        coEvery { emptyPreferences[any<Preferences.Key<Any>>()] } returns null
+        coEvery { mockDataStore.data } returns flowOf(emptyPreferences)
+
+        val result = preferencesDataSource.getWidgetCustomizationConfig()
+
+        assertEquals(false, result.useSystemColor)
+        assertEquals(0xFF333333.toInt(), result.customColorHex)
+        assertEquals(0.70f, result.opacity, 0.01f)
+    }
+
+    @Test
+    fun `setWidgetCustomizationConfig calls edit on DataStore`() = runTest {
+        val config = WidgetCustomizationConfig(
+            useSystemColor = true,
+            customColorHex = 0xFF121212.toInt(),
+            opacity = 0.5f
+        )
+        preferencesDataSource.setWidgetCustomizationConfig(config)
+
+        coVerify {
+            mockDataStore.edit(any())
+        }
     }
 }

@@ -9,4 +9,11 @@
     <string name="mode_b_label">Mode B</string>
     <string name="save_configuration">Save Configuration</string>
     <string name="configuration_saved">Configuration saved successfully</string>
+
+    <!-- Widget -->
+    <string name="widget_name">Network Switch Tile</string>
+    <string name="widget_description">Quick settings tile style widget to toggle network modes directly from your home screen.</string>
+    <string name="widget_default_title">5G</string>
+    <string name="widget_default_subtitle">Next: 4G</string>
+    <string name="widget_switch_description">Switch network mode</string>
 </resources>

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.supernova.networkswitch.domain.model.CompatibilityState
 import com.supernova.networkswitch.domain.model.ControlMethod
 import com.supernova.networkswitch.presentation.theme.NetworkSwitchTheme
+import com.supernova.networkswitch.presentation.ui.composable.WidgetCustomizationCard
 import com.supernova.networkswitch.presentation.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -60,6 +61,7 @@ private fun SettingsScreen(
     onBackClick: () -> Unit
 ) {
     val controlMethod by viewModel.controlMethod.collectAsState()
+    val widgetCustomization by viewModel.widgetCustomization.collectAsState()
     
     Scaffold(
         topBar = {
@@ -91,6 +93,12 @@ private fun SettingsScreen(
                 rootCompatibility = viewModel.rootCompatibility,
                 shizukuCompatibility = viewModel.shizukuCompatibility,
                 onRetryClick = { viewModel.retryCompatibilityCheck() }
+            )
+
+            // Widget Customization Card
+            WidgetCustomizationCard(
+                config = widgetCustomization,
+                onConfigChanged = { viewModel.updateWidgetCustomization(it) }
             )
             
             // About Section

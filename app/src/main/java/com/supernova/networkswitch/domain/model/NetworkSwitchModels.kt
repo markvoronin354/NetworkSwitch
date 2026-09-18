@@ -103,3 +103,21 @@ sealed class CompatibilityState {
     data class Incompatible(val reason: String) : CompatibilityState()
     data class PermissionDenied(val method: ControlMethod) : CompatibilityState()
 }
+
+/**
+ * Configuration for widget appearance customization
+ */
+data class WidgetCustomizationConfig(
+    val useSystemColor: Boolean = false,
+    val customColorHex: Int = 0xFF333333.toInt(), // Default grey
+    val opacity: Float = 0.70f // Default 70% opacity (semi-transparent)
+) {
+    /**
+     * Calculate final ARGB color integer combining RGB color and opacity
+     */
+    fun getEffectiveColor(systemColorHex: Int): Int {
+        val baseColor = if (useSystemColor) systemColorHex else customColorHex
+        val alphaInt = (opacity.coerceIn(0f, 1f) * 255).toInt()
+        return (baseColor and 0x00FFFFFF) or (alphaInt shl 24)
+    }
+}

@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import com.supernova.networkswitch.domain.model.CompatibilityState
 import com.supernova.networkswitch.domain.model.ControlMethod
+import com.supernova.networkswitch.domain.model.WidgetCustomizationConfig
 import com.supernova.networkswitch.domain.repository.NetworkControlRepository
 import com.supernova.networkswitch.domain.repository.PreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.SharingStarted
 import javax.inject.Inject
 
 /**
@@ -31,6 +33,14 @@ class SettingsViewModel @Inject constructor(
             started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
             initialValue = ControlMethod.SHIZUKU
         )
+
+    val widgetCustomization: StateFlow<WidgetCustomizationConfig> =
+        preferencesRepository.observeWidgetCustomizationConfig()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = WidgetCustomizationConfig()
+            )
     
     // Compatibility status for each method
     var rootCompatibility by mutableStateOf<CompatibilityState>(CompatibilityState.Pending)
@@ -68,6 +78,12 @@ class SettingsViewModel @Inject constructor(
     fun retryCompatibilityCheck() {
         networkControlRepository.requestPermission(ControlMethod.SHIZUKU)
         checkAllCompatibility()
+    }
+
+    fun updateWidgetCustomization(config: WidgetCustomizationConfig) {
+        viewModelScope.launch {
+            preferencesRepository.setWidgetCustomizationConfig(config)
+        }
     }
     
     private fun checkAllCompatibility() {

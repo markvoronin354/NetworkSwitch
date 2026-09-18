@@ -2,6 +2,7 @@ package com.supernova.networkswitch.data.repository
 
 import com.supernova.networkswitch.data.source.PreferencesDataSource
 import com.supernova.networkswitch.domain.model.ControlMethod
+import com.supernova.networkswitch.domain.model.WidgetCustomizationConfig
 import com.supernova.networkswitch.util.CoroutineTestRule
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -44,5 +45,24 @@ class PreferencesRepositoryImplTest {
     fun `observeControlMethod calls data source`() {
         repository.observeControlMethod()
         verify { mockDataSource.observeControlMethod() }
+    }
+
+    @Test
+    fun `getWidgetCustomizationConfig calls data source`() = runTest {
+        repository.getWidgetCustomizationConfig()
+        coVerify { mockDataSource.getWidgetCustomizationConfig() }
+    }
+
+    @Test
+    fun `setWidgetCustomizationConfig calls data source`() = runTest {
+        val config = WidgetCustomizationConfig()
+        repository.setWidgetCustomizationConfig(config)
+        coVerify { mockDataSource.setWidgetCustomizationConfig(config) }
+    }
+
+    @Test
+    fun `observeWidgetCustomizationConfig calls data source`() {
+        repository.observeWidgetCustomizationConfig()
+        verify { mockDataSource.observeWidgetCustomizationConfig() }
     }
 }

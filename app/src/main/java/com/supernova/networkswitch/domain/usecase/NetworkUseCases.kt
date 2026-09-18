@@ -4,6 +4,7 @@ import com.supernova.networkswitch.domain.model.CompatibilityState
 import com.supernova.networkswitch.domain.model.ControlMethod
 import com.supernova.networkswitch.domain.model.NetworkMode
 import com.supernova.networkswitch.domain.model.ToggleModeConfig
+import com.supernova.networkswitch.domain.model.WidgetCustomizationConfig
 import com.supernova.networkswitch.domain.repository.NetworkControlRepository
 import com.supernova.networkswitch.domain.repository.PreferencesRepository
 import javax.inject.Inject
@@ -90,5 +91,27 @@ class UpdateToggleModeConfigUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(config: ToggleModeConfig) {
         preferencesRepository.setToggleModeConfig(config)
+    }
+}
+
+/**
+ * Use case for getting widget customization configuration
+ */
+class GetWidgetCustomizationConfigUseCase @Inject constructor(
+    private val preferencesRepository: PreferencesRepository
+) {
+    suspend operator fun invoke(): WidgetCustomizationConfig {
+        return preferencesRepository.getWidgetCustomizationConfig()
+    }
+}
+
+/**
+ * Use case for updating widget customization configuration
+ */
+class UpdateWidgetCustomizationConfigUseCase @Inject constructor(
+    private val preferencesRepository: PreferencesRepository
+) {
+    suspend operator fun invoke(config: WidgetCustomizationConfig) {
+        preferencesRepository.setWidgetCustomizationConfig(config)
     }
 }

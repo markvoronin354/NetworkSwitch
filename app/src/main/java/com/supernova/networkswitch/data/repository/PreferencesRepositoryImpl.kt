@@ -3,6 +3,7 @@ package com.supernova.networkswitch.data.repository
 import com.supernova.networkswitch.data.source.PreferencesDataSource
 import com.supernova.networkswitch.domain.model.ControlMethod
 import com.supernova.networkswitch.domain.model.ToggleModeConfig
+import com.supernova.networkswitch.domain.model.WidgetCustomizationConfig
 import com.supernova.networkswitch.domain.repository.PreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -38,5 +39,17 @@ class PreferencesRepositoryImpl @Inject constructor(
     
     override fun observeToggleModeConfig(): Flow<ToggleModeConfig> {
         return preferencesDataSource.observeToggleModeConfig()
+    }
+
+    override suspend fun getWidgetCustomizationConfig(): WidgetCustomizationConfig {
+        return preferencesDataSource.getWidgetCustomizationConfig()
+    }
+
+    override suspend fun setWidgetCustomizationConfig(config: WidgetCustomizationConfig) {
+        preferencesDataSource.setWidgetCustomizationConfig(config)
+    }
+
+    override fun observeWidgetCustomizationConfig(): Flow<WidgetCustomizationConfig> {
+        return preferencesDataSource.observeWidgetCustomizationConfig()
     }
 }

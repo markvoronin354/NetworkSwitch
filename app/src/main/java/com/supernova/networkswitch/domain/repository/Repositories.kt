@@ -4,6 +4,7 @@ import com.supernova.networkswitch.domain.model.CompatibilityState
 import com.supernova.networkswitch.domain.model.ControlMethod
 import com.supernova.networkswitch.domain.model.NetworkMode
 import com.supernova.networkswitch.domain.model.ToggleModeConfig
+import com.supernova.networkswitch.domain.model.WidgetCustomizationConfig
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -74,4 +75,19 @@ interface PreferencesRepository {
      * Observe toggle mode configuration changes
      */
     fun observeToggleModeConfig(): Flow<ToggleModeConfig>
+    
+    /**
+     * Get widget customization configuration
+     */
+    suspend fun getWidgetCustomizationConfig(): WidgetCustomizationConfig
+
+    /**
+     * Set widget customization configuration
+     */
+    suspend fun setWidgetCustomizationConfig(config: WidgetCustomizationConfig)
+
+    /**
+     * Observe widget customization configuration changes
+     */
+    fun observeWidgetCustomizationConfig(): Flow<WidgetCustomizationConfig>
 }
