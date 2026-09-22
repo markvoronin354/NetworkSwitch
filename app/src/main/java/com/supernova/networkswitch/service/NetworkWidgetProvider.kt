@@ -6,15 +6,16 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.util.SizeF
 import android.util.TypedValue
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
@@ -125,16 +126,19 @@ class NetworkWidgetProvider : AppWidgetProvider() {
 
         // Get actual widget dimensions from options
         val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
-        val minWidthDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH) ?: 140
-        val minHeightDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT) ?: 60
-
-        val widgetWidthDp = if (minWidthDp > 0) minWidthDp else 140
-        val widgetHeightDp = if (minHeightDp > 0) minHeightDp else 60
+        val (widgetWidthDp, widgetHeightDp) = getWidgetDimensionsDp(options, context)
 
         val density = context.resources.displayMetrics.density
 
+        val isSamsung = Build.MANUFACTURER.contains("samsung", ignoreCase = true) ||
+                Build.BRAND.contains("samsung", ignoreCase = true) ||
+                Build.FINGERPRINT.contains("samsung", ignoreCase = true)
+
+        val isSamsung1xTall = isSamsung && widgetHeightDp < 145
+
         // Proportional scale tiers based on widget height and width
         val (badgeSizeDp, titleSp, subtitleSp) = when {
+            isSamsung1xTall -> Triple(32f, 16f, 11f)
             widgetHeightDp >= 180 || widgetWidthDp >= 320 -> Triple(64f, 26f, 16f)
             widgetHeightDp >= 130 || widgetWidthDp >= 240 -> Triple(54f, 22f, 14f)
             widgetHeightDp >= 90  || widgetWidthDp >= 180 -> Triple(46f, 19f, 13f)
@@ -166,15 +170,21 @@ class NetworkWidgetProvider : AppWidgetProvider() {
         val effectiveColor = customization.getEffectiveColor(systemAccentColor)
 
         // Render rounded background bitmap scaled to actual widget proportions
-        val widthPx = (widgetWidthDp * density).toInt().coerceAtLeast(200)
-        val heightPx = (widgetHeightDp * density).toInt().coerceAtLeast(100)
-        val cornerRadiusPx = (heightPx * 0.22f).coerceIn(20f, 120f)
+        val widthPx = (widgetWidthDp * density).toInt().coerceAtLeast(32)
+        val heightPx = (widgetHeightDp * density).toInt().coerceAtLeast(32)
+
+        val (cornerRadiusPx, verticalInsetPx) = calculateCornerRadiusAndInset(
+            heightPx = heightPx.toFloat(),
+            widgetHeightDp = widgetHeightDp,
+            isSamsung = isSamsung
+        )
 
         val bgBitmap = createRoundedBackgroundBitmap(
             widthPx = widthPx,
             heightPx = heightPx,
             color = effectiveColor,
-            cornerRadiusPx = cornerRadiusPx
+            cornerRadiusPx = cornerRadiusPx,
+            verticalInsetPx = verticalInsetPx
         )
         views.setImageViewBitmap(R.id.widget_bg_image, bgBitmap)
 
@@ -268,7 +278,8 @@ class NetworkWidgetProvider : AppWidgetProvider() {
         widthPx: Int,
         heightPx: Int,
         color: Int,
-        cornerRadiusPx: Float
+        cornerRadiusPx: Float,
+        verticalInsetPx: Float = 0f
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -276,9 +287,62 @@ class NetworkWidgetProvider : AppWidgetProvider() {
             this.color = color
             style = Paint.Style.FILL
         }
-        val rect = RectF(0f, 0f, widthPx.toFloat(), heightPx.toFloat())
+        val rect = RectF(0f, verticalInsetPx, widthPx.toFloat(), heightPx.toFloat() - verticalInsetPx)
         canvas.drawRoundRect(rect, cornerRadiusPx, cornerRadiusPx, paint)
         return bitmap
+    }
+
+    private fun getWidgetDimensionsDp(options: Bundle?, context: Context): Pair<Int, Int> {
+        if (options == null) return Pair(140, 60)
+
+        val config = context.resources.configuration
+        val isPortrait = config.orientation != Configuration.ORIENTATION_LANDSCAPE
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val sizes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                options.getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES, SizeF::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                options.getParcelableArrayList<SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES)
+            }
+            if (!sizes.isNullOrEmpty()) {
+                val size = if (isPortrait) {
+                    sizes.minByOrNull { it.width } ?: sizes[0]
+                } else {
+                    sizes.maxByOrNull { it.width } ?: sizes[0]
+                }
+                return Pair(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1))
+            }
+        }
+
+        val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 140)
+        val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 140)
+        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 60)
+        val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 60)
+
+        val widthDp = if (isPortrait) minWidth else maxWidth
+        val heightDp = if (isPortrait) maxHeight else minHeight
+
+        return Pair(
+            if (widthDp > 0) widthDp else 140,
+            if (heightDp > 0) heightDp else 60
+        )
+    }
+
+    internal fun calculateCornerRadiusAndInset(
+        heightPx: Float,
+        widgetHeightDp: Int,
+        isSamsung: Boolean
+    ): Pair<Float, Float> {
+        val isSamsung1xTall = isSamsung && widgetHeightDp < 145
+        return if (isSamsung1xTall) {
+            val verticalInsetPx = heightPx * 0.185f
+            val pillHeightPx = heightPx - (2 * verticalInsetPx)
+            Pair(pillHeightPx / 2f, verticalInsetPx)
+        } else {
+            val cornerRadiusPx = (heightPx * 0.22f).coerceIn(20f, 120f)
+            Pair(cornerRadiusPx, 0f)
+        }
     }
 
     private fun isColorDark(color: Int): Boolean {

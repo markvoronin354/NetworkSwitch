@@ -45,4 +45,46 @@ class NetworkWidgetProviderTest {
         val result = toggleNetworkModeUseCase(1)
         assertEquals(NetworkMode.NR_ONLY, result.getOrNull())
     }
+
+    @Test
+    fun `test Samsung 1x tall widget calculates pill corner radius and vertical inset`() {
+        val heightPx = 200f
+        val widgetHeightDp = 110
+        val (cornerRadius, verticalInset) = provider.calculateCornerRadiusAndInset(
+            heightPx = heightPx,
+            widgetHeightDp = widgetHeightDp,
+            isSamsung = true
+        )
+        // verticalInset = 200 * 0.185 = 37f
+        // pillHeight = 200 - 74 = 126f
+        // cornerRadius = 126 / 2 = 63f
+        assertEquals(37f, verticalInset, 0.01f)
+        assertEquals(63f, cornerRadius, 0.01f)
+    }
+
+    @Test
+    fun `test Samsung 2x tall widget uses standard rounded rectangle corner radius without inset`() {
+        val heightPx = 300f
+        val widgetHeightDp = 150
+        val (cornerRadius, verticalInset) = provider.calculateCornerRadiusAndInset(
+            heightPx = heightPx,
+            widgetHeightDp = widgetHeightDp,
+            isSamsung = true
+        )
+        assertEquals(0f, verticalInset, 0.01f)
+        assertEquals(66f, cornerRadius, 0.01f)
+    }
+
+    @Test
+    fun `test non-Samsung widget uses standard rounded rectangle corner radius without inset`() {
+        val heightPx = 120f
+        val widgetHeightDp = 60
+        val (cornerRadius, verticalInset) = provider.calculateCornerRadiusAndInset(
+            heightPx = heightPx,
+            widgetHeightDp = widgetHeightDp,
+            isSamsung = false
+        )
+        assertEquals(0f, verticalInset, 0.01f)
+        assertEquals(26.4f, cornerRadius, 0.01f)
+    }
 }
