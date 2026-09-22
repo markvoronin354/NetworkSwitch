@@ -154,7 +154,7 @@ fun WidgetCustomizationCard(
                     onValueChange = { newOpacity ->
                         onConfigChanged(config.copy(opacity = newOpacity))
                     },
-                    valueRange = 0.05f..1.0f
+                    valueRange = 0.0f..1.0f
                 )
             }
         }
