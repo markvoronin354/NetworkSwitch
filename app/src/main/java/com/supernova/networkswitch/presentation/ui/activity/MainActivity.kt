@@ -17,7 +17,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.supernova.networkswitch.BuildConfig
 import com.supernova.networkswitch.R
 import com.supernova.networkswitch.domain.model.CompatibilityState
 import com.supernova.networkswitch.presentation.theme.NetworkSwitchTheme
@@ -124,6 +126,17 @@ private fun MainScreen(
             
             // Quick Settings Tip Card
             QuickSettingsHintCard()
+
+            // Version display
+            Text(
+                text = "v${BuildConfig.VERSION_NAME.removeSuffix("-debug")}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 12.dp),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
