@@ -26,6 +26,7 @@ import com.supernova.networkswitch.domain.usecase.GetCurrentNetworkModeUseCase
 import com.supernova.networkswitch.domain.usecase.GetToggleModeConfigUseCase
 import com.supernova.networkswitch.domain.usecase.ToggleNetworkModeUseCase
 import com.supernova.networkswitch.util.Utils
+import com.supernova.networkswitch.util.WidgetThemeHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -157,17 +158,9 @@ class NetworkWidgetProvider : AppWidgetProvider() {
             WidgetCustomizationConfig()
         }
 
-        val systemAccentColor = try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                context.getColor(android.R.color.system_accent1_600)
-            } else {
-                context.getColor(R.color.purple_700)
-            }
-        } catch (_: Exception) {
-            context.getColor(R.color.purple_700)
-        }
+        val systemWidgetColor = WidgetThemeHelper.getSystemWidgetColor(context)
 
-        val effectiveColor = customization.getEffectiveColor(systemAccentColor)
+        val effectiveColor = customization.getEffectiveColor(systemWidgetColor)
 
         // Render rounded background bitmap scaled to actual widget proportions
         val widthPx = (widgetWidthDp * density).toInt().coerceAtLeast(32)

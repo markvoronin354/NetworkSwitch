@@ -1,8 +1,6 @@
 package com.supernova.networkswitch.presentation.ui.composable
 
-import android.R
 import android.graphics.Color as AndroidColor
-import android.os.Build
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -10,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +30,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.supernova.networkswitch.domain.model.WidgetCustomizationConfig
+import com.supernova.networkswitch.util.WidgetThemeHelper
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -81,11 +81,7 @@ fun WidgetCustomizationCard(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            "Use Material You dynamic color from system theme"
-                        } else {
-                            "Use default primary theme accent color"
-                        },
+                        text = "Automatically adapts widget color to dark or light system theme",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -164,43 +160,74 @@ fun WidgetCustomizationCard(
 @Composable
 private fun WidgetPreviewBox(config: WidgetCustomizationConfig) {
     val context = LocalContext.current
+    var previewSystemMode by remember { mutableStateOf<Boolean?>(null) } // null = System, true = Dark, false = Light
 
-    val systemAccentColor = remember {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                context.getColor(R.color.system_accent1_600)
-            } else {
-                context.getColor(com.supernova.networkswitch.R.color.purple_700)
-            }
-        } catch (_: Exception) {
-            AndroidColor.parseColor("#3700B3")
-        }
+    val systemInDark = isSystemInDarkTheme()
+    val isDarkPreview = if (config.useSystemColor) {
+        previewSystemMode ?: systemInDark
+    } else {
+        val red = (config.customColorHex shr 16) and 0xFF
+        val green = (config.customColorHex shr 8) and 0xFF
+        val blue = config.customColorHex and 0xFF
+        val luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255.0
+        luminance < 0.6 || config.opacity < 0.4f
     }
 
-    val baseColorInt = if (config.useSystemColor) systemAccentColor else config.customColorHex
+    val baseColorInt = if (config.useSystemColor) {
+        if (isDarkPreview) {
+            WidgetThemeHelper.getSystemDarkColor(context)
+        } else {
+            WidgetThemeHelper.getSystemLightColor(context)
+        }
+    } else {
+        config.customColorHex
+    }
+
     val alphaInt = (config.opacity.coerceIn(0f, 1f) * 255).toInt()
     val previewColorInt = (baseColorInt and 0x00FFFFFF) or (alphaInt shl 24)
 
     val previewColor = Color(previewColorInt)
 
-    // Luminance check for text contrast
-    val red = (baseColorInt shr 16) and 0xFF
-    val green = (baseColorInt shr 8) and 0xFF
-    val blue = baseColorInt and 0xFF
-    val luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255.0
-    val isDark = luminance < 0.6 || config.opacity < 0.4f
-
-    val textColor = if (isDark) Color.White else Color.Black
-    val subtitleColor = if (isDark) Color(0xFFE0E0E0) else Color(0xFF424242)
+    val textColor = if (isDarkPreview) Color.White else Color.Black
+    val subtitleColor = if (isDarkPreview) Color(0xFFE0E0E0) else Color(0xff403f3f)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = "Live Preview",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Live Preview",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (config.useSystemColor) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = previewSystemMode == null,
+                        onClick = { previewSystemMode = null },
+                        label = { Text("System", fontSize = 11.sp) }
+                    )
+                    FilterChip(
+                        selected = previewSystemMode == true,
+                        onClick = { previewSystemMode = true },
+                        label = { Text("Dark", fontSize = 11.sp) }
+                    )
+                    FilterChip(
+                        selected = previewSystemMode == false,
+                        onClick = { previewSystemMode = false },
+                        label = { Text("Light", fontSize = 11.sp) }
+                    )
+                }
+            }
+        }
 
         // Wallpaper background box
         Box(
@@ -239,7 +266,7 @@ private fun WidgetPreviewBox(config: WidgetCustomizationConfig) {
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(
-                                if (isDark) Color(0xFF4A4A4A) else Color(0xFF616161)
+                                if (isDarkPreview) Color(0xFF4A4A4A) else Color(0xFF616161)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
