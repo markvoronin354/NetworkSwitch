@@ -1,8 +1,12 @@
 package com.supernova.networkswitch.presentation.ui.composable
 
 import android.graphics.Color as AndroidColor
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,7 +24,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SweepGradient
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -29,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.supernova.networkswitch.R
 import com.supernova.networkswitch.domain.model.WidgetCustomizationConfig
 import com.supernova.networkswitch.util.WidgetThemeHelper
 import kotlin.math.atan2
@@ -43,45 +47,57 @@ fun WidgetCustomizationCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Text(
-                text = "Widget Customization",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "Customize the appearance of the home screen widget.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column {
+                Text(
+                    text = "Widget Customization",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Personalize the appearance of your home screen widget",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             // Live Widget Preview
             WidgetPreviewBox(config = config)
 
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
             // System Color Toggle
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Use System Color",
+                        text = "Match System Theme",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Automatically adapts widget color to dark or light system theme",
+                        text = "Automatically adapts widget color to dark or light system mode",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -96,53 +112,70 @@ fun WidgetCustomizationCard(
             }
 
             // Custom Color Controls
-            if (!config.useSystemColor) {
-                Text(
-                    text = "Widget Color",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
+            AnimatedVisibility(
+                visible = !config.useSystemColor,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "Custom Widget Color",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-                // Color Wheel
-                ColorWheelPicker(
-                    currentColor = Color(config.customColorHex),
-                    onColorSelected = { selectedColor ->
-                        onConfigChanged(config.copy(customColorHex = selectedColor.toArgb()))
-                    }
-                )
+                    // Color Wheel
+                    ColorWheelPicker(
+                        currentColor = Color(config.customColorHex),
+                        onColorSelected = { selectedColor ->
+                            onConfigChanged(config.copy(customColorHex = selectedColor.toArgb()))
+                        }
+                    )
 
-                // Color Palette Presets
-                ColorPresets(
-                    selectedColorHex = config.customColorHex,
-                    onColorSelected = { hex ->
-                        onConfigChanged(config.copy(customColorHex = hex))
-                    }
-                )
+                    // Color Palette Presets
+                    ColorPresets(
+                        selectedColorHex = config.customColorHex,
+                        onColorSelected = { hex ->
+                            onConfigChanged(config.copy(customColorHex = hex))
+                        }
+                    )
+                }
             }
 
-            HorizontalDivider()
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // Transparency / Opacity Slider
+            // Opacity Slider
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Opacity",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     val percent = (config.opacity * 100).toInt()
                     val transPercent = 100 - percent
-                    Text(
-                        text = "$percent% ($transPercent% transparent)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = "$percent% ($transPercent% transparent)",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
 
                 Slider(
@@ -160,11 +193,9 @@ fun WidgetCustomizationCard(
 @Composable
 private fun WidgetPreviewBox(config: WidgetCustomizationConfig) {
     val context = LocalContext.current
-    var previewSystemMode by remember { mutableStateOf<Boolean?>(null) } // null = System, true = Dark, false = Light
-
     val systemInDark = isSystemInDarkTheme()
     val isDarkPreview = if (config.useSystemColor) {
-        previewSystemMode ?: systemInDark
+        systemInDark
     } else {
         val red = (config.customColorHex shr 16) and 0xFF
         val green = (config.customColorHex shr 8) and 0xFF
@@ -188,112 +219,73 @@ private fun WidgetPreviewBox(config: WidgetCustomizationConfig) {
 
     val previewColor = Color(previewColorInt)
 
-    val textColor = if (isDarkPreview) Color.White else Color.Black
-    val subtitleColor = if (isDarkPreview) Color(0xFFE0E0E0) else Color(0xff403f3f)
+    val textColor = if (isDarkPreview) Color.White else Color(0xFF1E293B)
+    val subtitleColor = if (isDarkPreview) Color(0xFFCBD5E1) else Color(0xFF64748B)
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Live Preview",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+    // Sleek Desktop/Wallpaper preview background
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(112.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF202938),
+                        Color(0xFF161C26),
+                        Color(0xFF0F131A)
+                    )
+                )
             )
-
-            if (config.useSystemColor) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    FilterChip(
-                        selected = previewSystemMode == null,
-                        onClick = { previewSystemMode = null },
-                        label = { Text("System", fontSize = 11.sp) }
-                    )
-                    FilterChip(
-                        selected = previewSystemMode == true,
-                        onClick = { previewSystemMode = true },
-                        label = { Text("Dark", fontSize = 11.sp) }
-                    )
-                    FilterChip(
-                        selected = previewSystemMode == false,
-                        onClick = { previewSystemMode = false },
-                        label = { Text("Light", fontSize = 11.sp) }
-                    )
-                }
-            }
-        }
-
-        // Wallpaper background box
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Widget Tile
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF1A237E),
-                            Color(0xFF0D47A1),
-                            Color(0xFF006064)
-                        )
-                    )
-                )
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+                .height(72.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(previewColor)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            // Widget Tile
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(72.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(previewColor)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically
+                // Badge Icon with Network Switch Logo
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isDarkPreview) Color(0xFF334155) else Color(0xFFE2E8F0)
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Badge Icon with Network Switch Logo
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isDarkPreview) Color(0xFF4A4A4A) else Color(0xFF616161)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = com.supernova.networkswitch.R.mipmap.ic_launcher_foreground),
-                            contentDescription = "Network Switch Logo",
-                            modifier = Modifier.size(44.dp)
-                        )
-                    }
+                    Image(
+                        painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                        contentDescription = "Network Switch Logo",
+                        modifier = Modifier.size(44.dp)
+                    )
+                }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "5G",
-                            color = textColor,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            text = "Next: 4G",
-                            color = subtitleColor,
-                            fontSize = 12.sp
-                        )
-                    }
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "5G",
+                        color = textColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = "Next: 4G",
+                        color = subtitleColor,
+                        fontSize = 12.sp
+                    )
                 }
             }
         }
@@ -312,10 +304,8 @@ private fun ColorWheelPicker(
     var currentSat by remember { mutableFloatStateOf(0f) }
     var currentVal by remember { mutableFloatStateOf(1f) }
 
-    // Ring buffer / set of recently emitted ARGB values to absorb asynchronous DataStore echo delays
     val recentEmittedArgbs = remember { mutableSetOf<Int>() }
 
-    // Sync state when currentColor is changed from an external source (e.g. ColorPresets)
     LaunchedEffect(currentColor) {
         val targetArgb = currentColor.toArgb()
         if (!recentEmittedArgbs.contains(targetArgb)) {
@@ -347,14 +337,14 @@ private fun ColorWheelPicker(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Brightness Slider on the LEFT
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = "Brightness",
@@ -372,15 +362,15 @@ private fun ColorWheelPicker(
             )
         }
 
-        Spacer(modifier = Modifier.width(20.dp))
+        Spacer(modifier = Modifier.width(24.dp))
 
         // Color Wheel on the RIGHT
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "Color",
+                text = "Hue & Saturation",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -497,7 +487,7 @@ private fun ColorWheelPicker(
 @Composable
 private fun VerticalBrightnessSlider(
     height: Dp,
-    width: Dp = 24.dp,
+    width: Dp = 26.dp,
     hue: Float,
     sat: Float,
     valValue: Float,
@@ -543,7 +533,7 @@ private fun VerticalBrightnessSlider(
                 }
             }
     ) {
-        val thumbRadius = 10.dp
+        val thumbRadius = 11.dp
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val thumbY = ((1.0f - valValue) * size.height).coerceIn(thumbRadius.toPx(), size.height - thumbRadius.toPx())
@@ -568,17 +558,17 @@ private fun ColorPresets(
     selectedColorHex: Int,
     onColorSelected: (Int) -> Unit
 ) {
+    // Muted, premium presets (No harsh intense neon or deep blue)
     val presets = remember {
         listOf(
-            0xFF333333.toInt(), // Default Grey
-            0xFF121212.toInt(), // Dark Black
-            0xFF455A64.toInt(), // Slate
-            0xFF1976D2.toInt(), // Blue
-            0xFF388E3C.toInt(), // Green
-            0xFF00796B.toInt(), // Teal
-            0xFF7B1FA2.toInt(), // Purple
-            0xFFD32F2F.toInt(), // Red
-            0xFFF57C00.toInt()  // Orange
+            0xFF2D3B48.toInt(), // Slate Graphite
+            0xFF181C22.toInt(), // Midnight Noir
+            0xFF3A4750.toInt(), // Charcoal Grey
+            0xFF2E5B60.toInt(), // Muted Teal
+            0xFF3B5249.toInt(), // Muted Sage
+            0xFF4A3B52.toInt(), // Deep Plum
+            0xFF5C4A3E.toInt(), // Muted Amber
+            0xFF3B485E.toInt()  // Cool Indigo Slate
         )
     }
 
@@ -588,6 +578,7 @@ private fun ColorPresets(
         Text(
             text = "Preset Colors",
             style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -600,12 +591,12 @@ private fun ColorPresets(
 
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(34.dp)
                         .clip(CircleShape)
                         .background(Color(colorInt))
                         .border(
                             width = if (isSelected) 3.dp else 1.dp,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.4f),
                             shape = CircleShape
                         )
                         .clickable {

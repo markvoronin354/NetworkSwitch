@@ -43,9 +43,9 @@ class PreferencesDataSource @Inject constructor(
         private val DEFAULT_MODE_B = NetworkMode.NR_LTE
         private const val DEFAULT_NEXT_IS_B = true
         
-        private const val DEFAULT_USE_SYSTEM_COLOR = false
+        private const val DEFAULT_USE_SYSTEM_COLOR = true
         private const val DEFAULT_CUSTOM_COLOR = 0xFF333333.toInt()
-        private const val DEFAULT_OPACITY = 0.70f
+        private const val DEFAULT_OPACITY = 0.50f
     }
     
     private fun parseControlMethod(methodString: String?): ControlMethod {

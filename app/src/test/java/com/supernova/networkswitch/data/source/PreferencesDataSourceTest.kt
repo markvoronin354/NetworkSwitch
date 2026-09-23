@@ -147,9 +147,9 @@ class PreferencesDataSourceTest {
 
         val result = preferencesDataSource.getWidgetCustomizationConfig()
 
-        assertEquals(false, result.useSystemColor)
+        assertEquals(true, result.useSystemColor)
         assertEquals(0xFF333333.toInt(), result.customColorHex)
-        assertEquals(0.70f, result.opacity, 0.01f)
+        assertEquals(0.50f, result.opacity, 0.01f)
     }
 
     @Test

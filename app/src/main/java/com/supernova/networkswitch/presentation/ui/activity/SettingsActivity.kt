@@ -5,14 +5,17 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
@@ -20,6 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,6 +41,7 @@ class SettingsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         
         setContent {
             NetworkSwitchTheme {
@@ -66,7 +71,13 @@ private fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = {
+                    Text(
+                        text = "Settings",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -74,7 +85,11 @@ private fun SettingsScreen(
                             contentDescription = "Back"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { paddingValues ->
@@ -83,7 +98,7 @@ private fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Control Method Selection
@@ -116,12 +131,20 @@ private fun ControlMethodCard(
     onRetryClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -131,152 +154,121 @@ private fun ControlMethodCard(
                 Text(
                     text = "Control Method",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 
                 IconButton(onClick = onRetryClick) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh compatibility"
+                        contentDescription = "Refresh compatibility",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "Choose how the app should control network settings. Root method requires a rooted device, while Shizuku method works with non-rooted devices that have Shizuku installed.",
+                text = "Select how Network Switch executes changes on your device.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Root Method Option
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(
-                        selected = selectedMethod == ControlMethod.ROOT,
-                        onClick = { onMethodSelected(ControlMethod.ROOT) }
-                    )
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = selectedMethod == ControlMethod.ROOT,
-                    onClick = { onMethodSelected(ControlMethod.ROOT) }
+            // Option 1: Root Method
+            ControlMethodOption(
+                title = "Root Method",
+                subtitle = "Requires root access (Magisk / KernelSU / APatch)",
+                isSelected = selectedMethod == ControlMethod.ROOT,
+                compatibilityState = rootCompatibility,
+                onClick = { onMethodSelected(ControlMethod.ROOT) }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Option 2: Shizuku Method
+            ControlMethodOption(
+                title = "Shizuku Method",
+                subtitle = "Works without root via Shizuku ADB service",
+                isSelected = selectedMethod == ControlMethod.SHIZUKU,
+                compatibilityState = shizukuCompatibility,
+                onClick = { onMethodSelected(ControlMethod.SHIZUKU) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ControlMethodOption(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    compatibilityState: CompatibilityState,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Root Method",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Requires rooted device with root access granted",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                
-                // Compatibility status indicator
-                when (rootCompatibility) {
-                    is CompatibilityState.Pending -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                    }
-                    is CompatibilityState.Compatible -> {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Compatible",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    is CompatibilityState.PermissionDenied -> {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = "Permission denied",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    is CompatibilityState.Incompatible -> {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = "Error",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             
-            // Shizuku Method Option
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(
-                        selected = selectedMethod == ControlMethod.SHIZUKU,
-                        onClick = { onMethodSelected(ControlMethod.SHIZUKU) }
-                    )
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = selectedMethod == ControlMethod.SHIZUKU,
-                    onClick = { onMethodSelected(ControlMethod.SHIZUKU) }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Shizuku Method",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Works with non-rooted devices using Shizuku service",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Status indicator
+            when (compatibilityState) {
+                is CompatibilityState.Pending -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
-                
-                // Compatibility status indicator
-                when (shizukuCompatibility) {
-                    is CompatibilityState.Pending -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                    }
-                    is CompatibilityState.Compatible -> {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Compatible",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    is CompatibilityState.PermissionDenied -> {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = "Permission denied",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    is CompatibilityState.Incompatible -> {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = "Not available",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                is CompatibilityState.Compatible -> {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Compatible",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                is CompatibilityState.PermissionDenied, is CompatibilityState.Incompatible -> {
+                    Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = "Incompatible or denied",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
             }
         }
@@ -286,67 +278,66 @@ private fun ControlMethodCard(
 @Composable
 private fun AboutCard() {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
             Text(
-                text = "About",
+                text = "About & Open Source",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            Text(
-                text = "Source Code",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
             LinkItem(
-                title = "NetworkSwitch",
+                title = "Source Code on GitHub",
                 subtitle = "https://github.com/markvoronin354/NetworkSwitch",
                 link = "https://github.com/markvoronin354/NetworkSwitch"
             )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 12.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+            )
+
             Text(
                 text = "Open Source Licenses",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             
             LinkItem(
-                title = "Shizuku",
-                subtitle = "Apache License 2.0\nhttps://github.com/RikkaApps/Shizuku",
+                title = "Shizuku Service API",
+                subtitle = "Apache License 2.0",
                 link = "https://github.com/RikkaApps/Shizuku"
             )
             
             LinkItem(
-                title = "libsu",
-                subtitle = "Apache License 2.0\nhttps://github.com/topjohnwu/libsu",
+                title = "libsu Framework",
+                subtitle = "Apache License 2.0",
                 link = "https://github.com/topjohnwu/libsu"
             )
             
             LinkItem(
-                title = "Android Jetpack",
-                subtitle = "Apache License 2.0\nhttps://android.googlesource.com/platform/frameworks/support",
+                title = "Android Jetpack & Compose",
+                subtitle = "Apache License 2.0",
                 link = "https://android.googlesource.com/platform/frameworks/support"
-            )
-            
-            LinkItem(
-                title = "Kotlin",
-                subtitle = "Apache License 2.0\nhttps://github.com/JetBrains/kotlin",
-                link = "https://github.com/JetBrains/kotlin"
             )
         }
     }
@@ -360,23 +351,35 @@ private fun LinkItem(
 ) {
     val context = LocalContext.current
     
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
             .clickable {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
             }
-            .padding(vertical = 8.dp)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+            contentDescription = "Open Link",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp)
         )
     }
 }

@@ -108,9 +108,9 @@ sealed class CompatibilityState {
  * Configuration for widget appearance customization
  */
 data class WidgetCustomizationConfig(
-    val useSystemColor: Boolean = false,
+    val useSystemColor: Boolean = true,
     val customColorHex: Int = 0xFF333333.toInt(), // Default grey
-    val opacity: Float = 0.70f // Default 70% opacity (semi-transparent)
+    val opacity: Float = 0.50f // Default 50% opacity (50% transparent)
 ) {
     /**
      * Calculate final ARGB color integer combining RGB color and opacity
