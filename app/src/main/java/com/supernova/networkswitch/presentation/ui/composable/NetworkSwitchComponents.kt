@@ -233,42 +233,47 @@ fun NetworkToggleCard(
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(16.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
                         text = "Current Mode",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = currentMode?.displayName ?: "Unavailable",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (currentMode != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline
-                    )
-                }
 
-                if (currentMode != null) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            text = currentMode.name,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
+                    if (currentMode != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = currentMode.name,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = currentMode?.displayName ?: "Unavailable",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (currentMode != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
