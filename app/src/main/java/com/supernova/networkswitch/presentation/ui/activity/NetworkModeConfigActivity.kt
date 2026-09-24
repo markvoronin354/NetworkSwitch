@@ -247,7 +247,7 @@ private fun NetworkModeConfigScreen(
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .defaultMinSize(minHeight = 52.dp)
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(

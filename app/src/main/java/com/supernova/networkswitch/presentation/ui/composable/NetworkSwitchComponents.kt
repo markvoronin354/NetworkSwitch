@@ -280,7 +280,8 @@ fun NetworkToggleCard(
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .defaultMinSize(minHeight = 52.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
         ) {
             AnimatedContent(
                 targetState = isLoading,
@@ -301,14 +302,16 @@ fun NetworkToggleCard(
                         Text(
                             text = "Switching...",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
                         )
                     }
                 } else {
                     Text(
                         text = toggleButtonText,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
