@@ -70,7 +70,7 @@
             android:label="@string/widget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.supernova.networkswitch.ACTION_WIDGET_TOGGLE" />
+                <action android:name="com.markvoronin.networkswitch.ACTION_WIDGET_TOGGLE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

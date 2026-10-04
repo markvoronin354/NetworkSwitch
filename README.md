@@ -85,7 +85,7 @@ The project follows modern Android Clean Architecture and MVVM patterns:
 ```
 app/
 ├── src/main/
-│   ├── java/com/supernova/networkswitch/
+│   ├── java/com/markvoronin/networkswitch/
 │   │   ├── presentation/               # UI Layer (MVVM & Compose)
 │   │   │   ├── ui/
 │   │   │   │   ├── activity/          # MainActivity, SettingsActivity, NetworkModeConfigActivity

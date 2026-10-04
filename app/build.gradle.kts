@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.supernova.networkswitch"
+    namespace = "com.markvoronin.networkswitch"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.supernova.networkswitch"
+        applicationId = "com.markvoronin.networkswitch"
         minSdk = 29
         targetSdk = 35
         versionCode = 263

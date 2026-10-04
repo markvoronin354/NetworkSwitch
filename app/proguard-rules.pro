@@ -19,15 +19,15 @@
 }
 
 # Keep AIDL interfaces
--keep class com.supernova.networkswitch.IRootController { *; }
--keep class com.supernova.networkswitch.IShizukuController { *; }
+-keep class com.markvoronin.networkswitch.IRootController { *; }
+-keep class com.markvoronin.networkswitch.IShizukuController { *; }
 
 # Keep classes that interact with system APIs
--keep class com.supernova.networkswitch.service.** { *; }
--keep class com.supernova.networkswitch.data.source.** { *; }
+-keep class com.markvoronin.networkswitch.service.** { *; }
+-keep class com.markvoronin.networkswitch.data.source.** { *; }
 
 # Keep reflection classes used for network mode constants
--keepclassmembers class com.supernova.networkswitch.data.source.** {
+-keepclassmembers class com.markvoronin.networkswitch.data.source.** {
     public static final int *;
     public static final long *;
 }
