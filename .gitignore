@@ -114,6 +114,7 @@ Thumbs.db
 .git/
 *.patch
 *.diff
+CLAUDE.md
 
 # Kotlin
 .kotlin/
