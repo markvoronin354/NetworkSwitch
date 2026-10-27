@@ -14,17 +14,17 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.util.SizeF
 import android.util.TypedValue
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
 import com.markvoronin.networkswitch.R
 import com.markvoronin.networkswitch.domain.model.WidgetCustomizationConfig
 import com.markvoronin.networkswitch.domain.repository.PreferencesRepository
 import com.markvoronin.networkswitch.domain.usecase.GetCurrentNetworkModeUseCase
 import com.markvoronin.networkswitch.domain.usecase.GetToggleModeConfigUseCase
-import com.markvoronin.networkswitch.domain.usecase.ToggleNetworkModeUseCase
 import com.markvoronin.networkswitch.util.Utils
 import com.markvoronin.networkswitch.util.WidgetThemeHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -38,9 +38,6 @@ class NetworkWidgetProvider : AppWidgetProvider() {
 
     @Inject
     lateinit var getCurrentNetworkModeUseCase: GetCurrentNetworkModeUseCase
-
-    @Inject
-    lateinit var toggleNetworkModeUseCase: ToggleNetworkModeUseCase
 
     @Inject
     lateinit var getToggleModeConfigUseCase: GetToggleModeConfigUseCase
@@ -80,40 +77,6 @@ class NetworkWidgetProvider : AppWidgetProvider() {
             } finally {
                 pendingResult.finish()
             }
-        }
-    }
-
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action == ACTION_TOGGLE_NETWORK) {
-            val pendingResult = goAsync()
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    showSwitchingState(context)
-
-                    val subId = Utils.getValidSubId()
-                    toggleNetworkModeUseCase(subId)
-
-                    updateAllWidgets(context)
-                } catch (e: Exception) {
-                    Log.e("NetworkWidgetProvider", "Error in widget toggle", e)
-                    updateAllWidgets(context)
-                } finally {
-                    pendingResult.finish()
-                }
-            }
-        }
-    }
-
-    private fun showSwitchingState(context: Context) {
-        val appWidgetManager = AppWidgetManager.getInstance(context)
-        val componentName = ComponentName(context, NetworkWidgetProvider::class.java)
-        val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName) ?: return
-
-        for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.widget_network_tile)
-            views.setTextViewText(R.id.widget_tile_subtitle, "Switching...")
-            appWidgetManager.updateAppWidget(appWidgetId, views)
         }
     }
 
@@ -184,7 +147,7 @@ class NetworkWidgetProvider : AppWidgetProvider() {
         // Adjust text contrast based on background color luminance
         val isDark = isColorDark(effectiveColor)
         val titleColor = if (isDark) Color.WHITE else Color.BLACK
-        val subtitleColor = if (isDark) Color.parseColor("#E0E0E0") else Color.parseColor("#424242")
+        val subtitleColor = if (isDark) "#E0E0E0".toColorInt() else "#424242".toColorInt()
 
         views.setTextColor(R.id.widget_tile_title, titleColor)
         views.setTextColor(R.id.widget_tile_subtitle, subtitleColor)
@@ -201,24 +164,20 @@ class NetworkWidgetProvider : AppWidgetProvider() {
             null
         }
 
-        val modeLabel: String
-        val nextModeLabel: String
-
         if (toggleConfig != null) {
             val mode = currentMode ?: toggleConfig.getCurrentMode()
-            modeLabel = mode.tileLabel
-            nextModeLabel = toggleConfig.getNextMode().tileLabel
+            val modeLabel = mode.tileLabel
+            val nextModeLabel = toggleConfig.getNextMode().tileLabel
 
             views.setTextViewText(R.id.widget_tile_title, modeLabel)
-            views.setTextViewText(R.id.widget_tile_subtitle, "Next: $nextModeLabel")
+            views.setTextViewText(R.id.widget_tile_subtitle, context.getString(R.string.next_mode, nextModeLabel))
         } else {
-            modeLabel = "N/A"
-            views.setTextViewText(R.id.widget_tile_title, "Network Switch")
-            views.setTextViewText(R.id.widget_tile_subtitle, "Tap to load")
+            views.setTextViewText(R.id.widget_tile_title, context.getString(R.string.network_switch))
+            views.setTextViewText(R.id.widget_tile_subtitle, context.getString(R.string.tile_tap_to_load))
         }
 
         // Render scaled badge icon bitmap with Network Switch logo
-        val badgeColor = if (isDark) Color.parseColor("#4A4A4A") else Color.parseColor("#616161")
+        val badgeColor = if (isDark) "#4A4A4A".toColorInt() else "#616161".toColorInt()
         val badgeBitmap = createBadgeIconBitmap(
             context = context,
             badgeSizePx = badgeSizePx,
@@ -226,8 +185,8 @@ class NetworkWidgetProvider : AppWidgetProvider() {
         )
         views.setImageViewBitmap(R.id.widget_tile_icon, badgeBitmap)
 
-        val toggleIntent = Intent(context, NetworkWidgetProvider::class.java).apply {
-            action = ACTION_TOGGLE_NETWORK
+        val toggleIntent = Intent(context, WidgetToggleReceiver::class.java).apply {
+            action = WidgetToggleReceiver.ACTION_TOGGLE_NETWORK
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -245,7 +204,7 @@ class NetworkWidgetProvider : AppWidgetProvider() {
         badgeSizePx: Int,
         badgeColor: Int
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(badgeSizePx, badgeSizePx, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(badgeSizePx, badgeSizePx)
         val canvas = Canvas(bitmap)
 
         val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -274,7 +233,7 @@ class NetworkWidgetProvider : AppWidgetProvider() {
         cornerRadiusPx: Float,
         verticalInsetPx: Float = 0f
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(widthPx, heightPx)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
@@ -347,8 +306,6 @@ class NetworkWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        const val ACTION_TOGGLE_NETWORK = "com.markvoronin.networkswitch.ACTION_WIDGET_TOGGLE"
-
         fun updateAllWidgets(context: Context) {
             try {
                 val appWidgetManager = AppWidgetManager.getInstance(context) ?: return
