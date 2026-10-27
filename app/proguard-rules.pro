@@ -1,4 +1,4 @@
-# Network Switch ProGuard Rules - Optimized for size
+# Network Switch ProGuard Rules
 
 # Aggressive optimization settings
 -optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
@@ -8,29 +8,25 @@
 -overloadaggressively
 -repackageclasses ''
 
-# Remove debug logging completely in release builds
+# Strip verbose logging from release builds. Warnings and errors are kept so
+# field issues (e.g. a rejected network mode) can still be diagnosed.
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
     public static int v(...);
     public static int i(...);
-    public static int w(...);
     public static int d(...);
-    public static int e(...);
 }
 
-# Keep AIDL interfaces
+# Keep line numbers for readable stack traces
+-keepattributes LineNumberTable
+
+# AIDL interfaces shared with the Shizuku / root processes
 -keep class com.markvoronin.networkswitch.IRootController { *; }
 -keep class com.markvoronin.networkswitch.IShizukuController { *; }
 
-# Keep classes that interact with system APIs
--keep class com.markvoronin.networkswitch.service.** { *; }
--keep class com.markvoronin.networkswitch.data.source.** { *; }
-
-# Keep reflection classes used for network mode constants
--keepclassmembers class com.markvoronin.networkswitch.data.source.** {
-    public static final int *;
-    public static final long *;
-}
+# Instantiated by class name from the Shizuku / libsu service processes
+-keep class com.markvoronin.networkswitch.service.ShizukuControllerService { *; }
+-keep class com.markvoronin.networkswitch.service.RootNetworkControllerService { *; }
 
 # Keep Hilt generated classes
 -keep class dagger.hilt.** { *; }
@@ -44,33 +40,8 @@
 # Keep Shizuku classes
 -keep class rikka.shizuku.** { *; }
 
-# Keep Compose classes - more selective
+# Compose
 -dontwarn androidx.compose.**
 -keep class androidx.compose.runtime.** { *; }
 -keep class androidx.compose.ui.platform.** { *; }
 -keep class androidx.compose.ui.graphics.** { *; }
-# Remove overly broad Compose keep rule
-# -keep class androidx.compose.** { *; }
-
-# Keep Android system classes that might be accessed via reflection
--keep class android.telephony.** { *; }
--keep class com.android.internal.telephony.** { *; }
-
-# Remove debug logging in release builds
--assumenosideeffects class android.util.Log {
-    public static boolean isLoggable(java.lang.String, int);
-    public static int v(...);
-    public static int i(...);
-    public static int w(...);
-    public static int d(...);
-    public static int e(...);
-}
-
-# Minimal attributes for crash reports (removed SourceFile for smaller APK)
--keepattributes LineNumberTable
-# -keepattributes SourceFile  # Commented out for smaller APK
-# -renamesourcefileattribute SourceFile  # Commented out
-
-# Additional optimizations
--repackageclasses ''
--allowaccessmodification
