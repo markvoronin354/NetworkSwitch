@@ -5,6 +5,12 @@ plugins {
     alias(libs.plugins.legacy.kapt)
 }
 
+// CI passes -PversionNameOverride=<tag without "v"> for releases. The version code is derived
+// from the name (major * 10000 + minor * 100 + patch) so it always increases with the version.
+val appVersionName = providers.gradleProperty("versionNameOverride").getOrElse("2.6.3")
+val appVersionCode = appVersionName.split(".").map { it.toInt() }
+    .let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+
 android {
     namespace = "com.markvoronin.networkswitch"
     compileSdk = 35
@@ -13,17 +19,26 @@ android {
         applicationId = "com.markvoronin.networkswitch"
         minSdk = 29
         targetSdk = 35
-        versionCode = 263
-        versionName = "2.6.3"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
-        vectorDrawables {
-            useSupportLibrary = true
-        }
-        
+
         androidResources {
             localeFilters += "en"
+        }
+    }
+
+    signingConfigs {
+        // Configured only when the release keystore is supplied (CI); local release builds fall back to the debug key.
+        val keystorePath = providers.environmentVariable("SIGNING_KEYSTORE_PATH").orNull
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = providers.environmentVariable("SIGNING_STORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("SIGNING_KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("SIGNING_KEY_PASSWORD").orNull
+            }
         }
     }
 
@@ -35,15 +50,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
-            isDebuggable = false
-            isJniDebuggable = false
-            isPseudoLocalesEnabled = false
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
         
         debug {
             isMinifyEnabled = false
-            isDebuggable = true
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
@@ -58,10 +69,6 @@ android {
         compose = true
         aidl = true
         buildConfig = true
-    }
-    
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.get()
     }
     
     testOptions {
@@ -101,7 +108,6 @@ android {
 
 dependencies {
 
-    implementation(libs.androidx.foundation)
     compileOnly(project(":hiddenapi"))
     
     // Root & Shizuku
@@ -119,6 +125,7 @@ dependencies {
     
     // Compose
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.foundation)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.material3)
@@ -127,7 +134,6 @@ dependencies {
     
     // Dependency Injection
     implementation(libs.hilt.android)
-    implementation(libs.hilt.navigation.compose)
     "kapt"(libs.hilt.compiler)
     
     // Data Storage
@@ -143,8 +149,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
-    // Hilt Testing
-    testImplementation(libs.hilt.android.testing)
-    "kaptTest"(libs.hilt.compiler)
 }
