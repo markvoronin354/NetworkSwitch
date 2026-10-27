@@ -20,7 +20,7 @@ A modern, open-source Android application built with **Jetpack Compose**, **Clea
 Network Switch provides granular control over device cellular network radio modes, supporting 34 different configurations ranging from pure single-mode forced configurations (e.g. 5G SA/NR-only, 4G LTE-only) to complex multi-mode preference stacks.
 
 ### Key Use Cases
-- **Quick Switching**: Instantly toggle between configured network modes directly from the Quick Settings panel.
+- **Quick Switching**: Instantly toggle between configured network modes directly from the Quick Settings panel or a home screen widget.
 - **Speed & Signal Optimization**: Force high-performance modes (e.g., 5G/NR or 4G/LTE) in areas with poor auto-selection logic.
 - **Battery Preservation**: Drop down to power-efficient network modes when high-speed data is not needed.
 - **Coverage & Roaming**: Force specific radio bands when traveling internationally or using specialized carrier configurations.
@@ -30,6 +30,7 @@ Network Switch provides granular control over device cellular network radio mode
 
 - **34 Network Modes**: Comprehensive coverage for global carriers, CDMA (US), TD-SCDMA (China), and standard GSM/WCDMA/LTE/NR stacks.
 - **Smart Quick Settings Tile**: Dynamically renders active network technology text (**5G**, **4G**, **3G**, **2G**) directly inside the tile icon, rendering clearly on both compact circular QS panels and full expanded tiles.
+- **Home Screen Widget**: A resizable tile-style widget that shows the active and next mode, with a live-preview customizer (match system theme or pick a custom color, adjustable opacity) in Settings.
 - **Configurable Toggle Pairs**: Select any two network modes (Mode A / Mode B) for instant 1-tap toggling.
 - **Dual System Operations**:
   - **Shizuku Method**: Non-rooted system access via Shizuku API.
@@ -76,7 +77,7 @@ Network Switch provides granular control over device cellular network radio mode
 1. Download the latest APK from the Releases tab.
 2. Install the APK on your device.
 3. Grant access permissions for your preferred control method (**Shizuku** or **Root**).
-4. Add the **Network Switch** tile to your Quick Settings panel.
+4. Add the **Network Switch** tile to your Quick Settings panel, and/or the **Network Switch Tile** widget to your home screen.
 
 ## Architecture & Project Structure
 
@@ -102,12 +103,15 @@ app/
 │   │   │   └── source/                # DataStore & Network Control data sources
 │   │   ├── service/                   # Android System Services
 │   │   │   ├── NetworkTileService.kt            # Smart Quick Settings Tile
+│   │   │   ├── NetworkWidgetProvider.kt         # Home screen widget
+│   │   │   ├── WidgetToggleReceiver.kt          # Widget tap handler (not exported)
+│   │   │   ├── TelephonyController.kt           # Hidden ITelephony calls shared by both services
 │   │   │   ├── RootNetworkControllerService.kt  # Root IPC service
 │   │   │   └── ShizukuControllerService.kt      # Shizuku IPC service
 │   │   └── di/                        # Hilt DI modules (DataModule, etc.)
 │   └── aidl/                          # AIDL definitions for IPC
 │
-hiddenapi/                             # Android Hidden API stubs module
+hiddenapi/                             # Compile-time stubs for hidden framework APIs
 .github/workflows/
 ├── build.yml                          # CI build verification
 └── release.yml                        # GitHub release automated build
@@ -125,11 +129,16 @@ cd NetworkSwitch
 
 # Run unit test suite
 ./gradlew testDebugUnitTest
+
+# Run Android lint
+./gradlew lintDebug
 ```
+
+Release builds are signed from environment variables when they are set (`SIGNING_KEYSTORE_PATH`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`); otherwise `assembleRelease` falls back to the debug key for local testing. The version code is derived from the version name (`major * 10000 + minor * 100 + patch`).
 
 ## Testing
 
-The codebase includes comprehensive unit tests utilizing **JUnit 4**, **MockK**, and **Kotlinx Coroutines Test**:
+The codebase includes unit tests for the domain models, use cases, repositories, preferences and ViewModels, utilizing **JUnit 4**, **MockK**, and **Kotlinx Coroutines Test**:
 
 ```bash
 ./gradlew test
@@ -153,4 +162,5 @@ This project is licensed under the **GNU General Public License v3.0**. See the 
 - **Shizuku**: Non-root system API execution
 - **libsu**: Root service management
 - **Hilt**: Dependency injection framework
+- **AndroidHiddenApiBypass**: Access to hidden telephony APIs
 - **Jetpack Compose**: Declarative UI library
