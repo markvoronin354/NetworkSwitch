@@ -29,71 +29,52 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-      
-    - name: Extract version from tag
-      id: get_version
-      run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          VERSION="${{ github.event.inputs.version }}"
-        else
-          VERSION=${GITHUB_REF#refs/tags/}
-        fi
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "version_code=$(echo "$VERSION" | sed -e 's/v//' -e 's/\.//g')" >> $GITHUB_OUTPUT
-        
-    - name: Update version in build.gradle.kts
-      run: |
-        VERSION_NAME=${{ steps.get_version.outputs.version }}
-        VERSION_CODE=${{ steps.get_version.outputs.version_code }}
-        sed -i "s/versionCode = [0-9]*/versionCode = $VERSION_CODE/" app/build.gradle.kts
-        sed -i "s/versionName = \".*\"/versionName = \"${VERSION_NAME#v}\"/" app/build.gradle.kts
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v4
 
-    - name: Run tests
-      run: ./gradlew test
-      
-    - name: Build release APK
-      run: ./gradlew assembleRelease
-      
-    - name: Sign APK
+    - name: Extract version
+      id: get_version
       env:
-        KEYSTORE_BASE64: ${{ secrets.SIGNING_KEY_STORE_BASE64 }}
-        KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-        KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-        KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        INPUT_VERSION: ${{ github.event.inputs.version }}
       run: |
-        if [ -n "$KEYSTORE_BASE64" ]; then
-          printf '%s' "$KEYSTORE_BASE64" | base64 -d > app/keystore.jks
-          BUILD_TOOLS_VERSION=$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -n 1)
-          INPUT_APK="app/build/outputs/apk/release/app-release.apk"
-          if [ ! -f "$INPUT_APK" ]; then
-             echo "Error: Unsigned APK file not found."
-             exit 1
-          fi
-          $ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner sign \
-            --ks app/keystore.jks \
-            --ks-key-alias "$KEY_ALIAS" \
-            --ks-pass pass:"$KEYSTORE_PASSWORD" \
-            --key-pass pass:"$KEY_PASSWORD" \
-            --out app/build/outputs/apk/release/app-release-signed.apk \
-            "$INPUT_APK"
-        fi
-        
-    - name: Rename APK
-      run: |
-        VERSION=${{ steps.get_version.outputs.version }}
-        RELEASE_DIR="app/build/outputs/apk/release"
-        FINAL_APK_NAME="NetworkSwitch-${VERSION}.apk"
-        if [ -f "$RELEASE_DIR/app-release-signed.apk" ]; then
-          mv "$RELEASE_DIR/app-release-signed.apk" "$RELEASE_DIR/$FINAL_APK_NAME"
-        elif [ -f "$RELEASE_DIR/app-release-unsigned.apk" ]; then
-          mv "$RELEASE_DIR/app-release-unsigned.apk" "$RELEASE_DIR/$FINAL_APK_NAME"
+        if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+          VERSION="$INPUT_VERSION"
         else
-          echo "Error: No APK file found to rename."
+          VERSION="${GITHUB_REF#refs/tags/}"
+        fi
+        if ! echo "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "::error::Version must look like v1.2.3, got: $VERSION"
           exit 1
         fi
-        
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "version_name=${VERSION#v}" >> "$GITHUB_OUTPUT"
+
+    - name: Run tests
+      run: ./gradlew test -PversionNameOverride=${{ steps.get_version.outputs.version_name }}
+
+    - name: Decode signing keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.SIGNING_KEY_STORE_BASE64 }}
+      run: |
+        if [ -z "$KEYSTORE_BASE64" ]; then
+          echo "::error::SIGNING_KEY_STORE_BASE64 is not set; refusing to publish a debug-signed release APK."
+          exit 1
+        fi
+        printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+        echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+    - name: Build signed release APK
+      env:
+        SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+        SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      run: ./gradlew assembleRelease -PversionNameOverride=${{ steps.get_version.outputs.version_name }}
+
+    - name: Rename APK
+      run: |
+        RELEASE_DIR="app/build/outputs/apk/release"
+        mv "$RELEASE_DIR/app-release.apk" "$RELEASE_DIR/NetworkSwitch-${{ steps.get_version.outputs.version }}.apk"
+
     - name: Generate changelog
       id: changelog
       run: |
