@@ -17,7 +17,7 @@ fun NetworkModeSelector(
     selectedMode: NetworkMode,
     onModeSelected: (NetworkMode) -> Unit,
     modifier: Modifier = Modifier,
-    availableModes: List<NetworkMode> = NetworkMode.values().toList()
+    availableModes: List<NetworkMode> = NetworkMode.entries
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -66,7 +66,7 @@ fun NetworkModeSelector(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
 
                 ExposedDropdownMenu(

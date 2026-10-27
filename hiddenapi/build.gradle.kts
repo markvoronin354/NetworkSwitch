@@ -6,7 +6,7 @@ plugins {
 // Used with compileOnly, so nothing from this module ships in the APK.
 android {
     namespace = "com.android"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 29

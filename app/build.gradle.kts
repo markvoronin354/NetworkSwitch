@@ -13,12 +13,12 @@ val appVersionCode = appVersionName.split(".").map { it.toInt() }
 
 android {
     namespace = "com.markvoronin.networkswitch"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.markvoronin.networkswitch"
         minSdk = 29
-        targetSdk = 35
+        targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
 
