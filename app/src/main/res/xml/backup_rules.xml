@@ -6,9 +6,6 @@
    See https://developer.android.com/about/versions/12/backup-restore
 -->
 <full-backup-content>
-    <!-- Include datastore preferences for user settings -->
+    <!-- Only user settings (control method, toggle pair, widget look) are backed up -->
     <include domain="file" path="datastore/" />
-    
-    <!-- Exclude any sensitive or device-specific data -->
-    <exclude domain="file" path="datastore/device_specific.preferences_pb" />
 </full-backup-content>

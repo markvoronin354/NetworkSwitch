@@ -1,7 +1,6 @@
 package com.markvoronin.networkswitch.presentation.ui.activity
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,7 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import com.markvoronin.networkswitch.R
 import com.markvoronin.networkswitch.domain.model.CompatibilityState
 import com.markvoronin.networkswitch.domain.model.ControlMethod
 import com.markvoronin.networkswitch.presentation.theme.NetworkSwitchTheme
@@ -73,7 +75,7 @@ private fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Settings",
+                        text = stringResource(R.string.settings),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -82,7 +84,7 @@ private fun SettingsScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -152,7 +154,7 @@ private fun ControlMethodCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Control Method",
+                    text = stringResource(R.string.control_method),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -161,7 +163,7 @@ private fun ControlMethodCard(
                 IconButton(onClick = onRetryClick) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh compatibility",
+                        contentDescription = stringResource(R.string.refresh_compatibility),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -170,7 +172,7 @@ private fun ControlMethodCard(
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "Select how Network Switch executes changes on your device.",
+                text = stringResource(R.string.control_method_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -179,8 +181,8 @@ private fun ControlMethodCard(
             
             // Option 1: Root Method
             ControlMethodOption(
-                title = "Root Method",
-                subtitle = "Requires root access (Magisk / KernelSU / APatch)",
+                title = stringResource(R.string.method_root),
+                subtitle = stringResource(R.string.method_root_desc),
                 isSelected = selectedMethod == ControlMethod.ROOT,
                 compatibilityState = rootCompatibility,
                 onClick = { onMethodSelected(ControlMethod.ROOT) }
@@ -190,8 +192,8 @@ private fun ControlMethodCard(
 
             // Option 2: Shizuku Method
             ControlMethodOption(
-                title = "Shizuku Method",
-                subtitle = "Works without root via Shizuku ADB service",
+                title = stringResource(R.string.method_shizuku),
+                subtitle = stringResource(R.string.method_shizuku_desc),
                 isSelected = selectedMethod == ControlMethod.SHIZUKU,
                 compatibilityState = shizukuCompatibility,
                 onClick = { onMethodSelected(ControlMethod.SHIZUKU) }
@@ -257,7 +259,7 @@ private fun ControlMethodOption(
                 is CompatibilityState.Compatible -> {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Compatible",
+                        contentDescription = stringResource(R.string.compatible),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp)
                     )
@@ -265,7 +267,7 @@ private fun ControlMethodOption(
                 is CompatibilityState.PermissionDenied, is CompatibilityState.Incompatible -> {
                     Icon(
                         imageVector = Icons.Default.Error,
-                        contentDescription = "Incompatible or denied",
+                        contentDescription = stringResource(R.string.incompatible_or_denied),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(22.dp)
                     )
@@ -294,7 +296,7 @@ private fun AboutCard() {
                 .padding(20.dp)
         ) {
             Text(
-                text = "About & Open Source",
+                text = stringResource(R.string.about_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -303,7 +305,7 @@ private fun AboutCard() {
             Spacer(modifier = Modifier.height(16.dp))
             
             LinkItem(
-                title = "Source Code on GitHub",
+                title = stringResource(R.string.about_source_code),
                 subtitle = "https://github.com/markvoronin354/NetworkSwitch",
                 link = "https://github.com/markvoronin354/NetworkSwitch"
             )
@@ -314,7 +316,7 @@ private fun AboutCard() {
             )
 
             Text(
-                text = "Open Source Licenses",
+                text = stringResource(R.string.about_licenses),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -334,6 +336,18 @@ private fun AboutCard() {
                 link = "https://github.com/topjohnwu/libsu"
             )
             
+            LinkItem(
+                title = "Dagger Hilt",
+                subtitle = "Apache License 2.0",
+                link = "https://github.com/google/dagger"
+            )
+
+            LinkItem(
+                title = "AndroidHiddenApiBypass",
+                subtitle = "Apache License 2.0",
+                link = "https://github.com/LSPosed/AndroidHiddenApiBypass"
+            )
+
             LinkItem(
                 title = "Android Jetpack & Compose",
                 subtitle = "Apache License 2.0",
@@ -356,7 +370,7 @@ private fun LinkItem(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .clickable {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                context.startActivity(Intent(Intent.ACTION_VIEW, link.toUri()))
             }
             .padding(vertical = 10.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -377,7 +391,7 @@ private fun LinkItem(
         }
         Icon(
             imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-            contentDescription = "Open Link",
+            contentDescription = stringResource(R.string.open_link),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(18.dp)
         )

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.NetworkSwitch" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- DayNight so the window background matches the system theme before Compose draws -->
+    <style name="Theme.NetworkSwitch" parent="android:Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>
