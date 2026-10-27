@@ -67,8 +67,18 @@ private fun MainScreen(
     onNetworkModeConfigClick: () -> Unit
 ) {
     val compatibilityState = viewModel.compatibilityState
-    
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    if (viewModel.switchFailed) {
+        val message = stringResource(R.string.error_switch_failed)
+        LaunchedEffect(Unit) {
+            snackbarHostState.showSnackbar(message)
+            viewModel.dismissSwitchFailure()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -82,17 +92,17 @@ private fun MainScreen(
                     IconButton(onClick = onNetworkModeConfigClick) {
                         Icon(
                             imageVector = Icons.Default.Tune,
-                            contentDescription = "Network Mode Configuration"
+                            contentDescription = stringResource(R.string.network_mode_config)
                         )
                     }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
+                            contentDescription = stringResource(R.string.settings)
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     scrolledContainerColor = MaterialTheme.colorScheme.surface
                 )
@@ -118,7 +128,10 @@ private fun MainScreen(
             if (compatibilityState is CompatibilityState.Compatible) {
                 NetworkToggleCard(
                     currentMode = viewModel.currentNetworkMode,
-                    toggleButtonText = viewModel.getToggleButtonText(),
+                    toggleButtonText = stringResource(
+                        R.string.switch_to,
+                        viewModel.toggleModeConfig.getNextMode().displayName
+                    ),
                     isLoading = viewModel.isLoading,
                     onToggleClick = { viewModel.toggleNetworkMode() }
                 )

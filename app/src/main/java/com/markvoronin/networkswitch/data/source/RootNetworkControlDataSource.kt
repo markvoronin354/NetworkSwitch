@@ -6,26 +6,34 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import com.markvoronin.networkswitch.IRootController
-import com.markvoronin.networkswitch.service.RootNetworkControllerService
 import com.markvoronin.networkswitch.domain.model.CompatibilityState
 import com.markvoronin.networkswitch.domain.model.ControlMethod
 import com.markvoronin.networkswitch.domain.model.NetworkMode
+import com.markvoronin.networkswitch.service.RootNetworkControllerService
 import com.markvoronin.networkswitch.util.Utils
 import com.topjohnwu.superuser.ipc.RootService
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Singleton
 class RootNetworkControlDataSource @Inject constructor(
     @ApplicationContext private val context: Context
 ) : NetworkControlDataSource {
-    
+
+    @Volatile
     private var networkController: IRootController? = null
-    private var isServiceConnected = false
+
+    @Volatile
+    private var activeConnection: ServiceConnection? = null
+
+    // Serializes binding so concurrent callers share one connection instead of each binding their own.
+    private val bindMutex = Mutex()
 
     override suspend fun checkCompatibility(subId: Int): CompatibilityState {
         return if (!Utils.isRootGranted()) {
@@ -37,9 +45,8 @@ class RootNetworkControlDataSource @Inject constructor(
 
     override suspend fun getCurrentNetworkMode(subId: Int): NetworkMode? {
         return try {
-            val controller = getNetworkController()
-            val modeValue = controller?.getCurrentNetworkMode(subId) ?: -1
-            if (modeValue == -1) null else NetworkMode.fromValue(modeValue)
+            val modeValue = getNetworkController()?.getCurrentNetworkMode(subId) ?: return null
+            NetworkMode.fromValue(modeValue)
         } catch (e: Exception) {
             null
         }
@@ -47,62 +54,65 @@ class RootNetworkControlDataSource @Inject constructor(
 
     override suspend fun setNetworkMode(subId: Int, mode: NetworkMode) {
         val controller = getNetworkController()
-        controller?.setNetworkMode(subId, mode.value)
+            ?: throw IllegalStateException("Root service is not available")
+        if (!controller.setNetworkMode(subId, mode.value)) {
+            throw IllegalStateException("The device rejected network mode ${mode.displayName}")
+        }
     }
 
-    override fun isConnected(): Boolean = isServiceConnected
-    
+    override fun isConnected(): Boolean = networkController?.asBinder()?.isBinderAlive == true
+
     override fun resetConnection() {
+        val connection = activeConnection
+        activeConnection = null
         networkController = null
-        isServiceConnected = false
+        if (connection != null) {
+            try {
+                RootService.unbind(connection)
+            } catch (_: Exception) {
+                // Already unbound
+            }
+        }
     }
 
     private suspend fun getNetworkController(): IRootController? {
-        if (networkController != null && isServiceConnected) {
-            return networkController
-        }
+        connectedController()?.let { return it }
 
-        return try {
-            suspendCancellableCoroutine { continuation ->
-                var isResumed = false
-                
-                val serviceConnection = object : ServiceConnection {
-                    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                        if (!isResumed) {
-                            isResumed = true
-                            networkController = IRootController.Stub.asInterface(service)
-                            isServiceConnected = true
-                            continuation.resume(networkController)
+        return bindMutex.withLock {
+            // Another caller may have connected while we waited for the lock.
+            connectedController()?.let { return@withLock it }
+            resetConnection()
+
+            withTimeoutOrNull(BIND_TIMEOUT_MS) {
+                suspendCancellableCoroutine<IRootController?> { continuation ->
+                    val connection = object : ServiceConnection {
+                        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                            val controller = IRootController.Stub.asInterface(service)
+                            networkController = controller
+                            if (continuation.isActive) continuation.resume(controller)
+                        }
+
+                        override fun onServiceDisconnected(name: ComponentName?) {
+                            networkController = null
                         }
                     }
+                    activeConnection = connection
+                    continuation.invokeOnCancellation { resetConnection() }
 
-                    override fun onServiceDisconnected(name: ComponentName?) {
-                        networkController = null
-                        isServiceConnected = false
+                    try {
+                        RootService.bind(Intent(context, RootNetworkControllerService::class.java), connection)
+                    } catch (e: Exception) {
+                        if (continuation.isActive) continuation.resume(null)
                     }
                 }
-                
-                continuation.invokeOnCancellation {
-                    isServiceConnected = false
-                    networkController = null
-                }
-                
-                try {
-                    RootService.bind(
-                        Intent(context, RootNetworkControllerService::class.java),
-                        serviceConnection
-                    )
-                } catch (e: Exception) {
-                    if (!isResumed) {
-                        isResumed = true
-                        continuation.resumeWithException(e)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            isServiceConnected = false
-            networkController = null
-            throw e
+            }.also { if (it == null) resetConnection() }
         }
+    }
+
+    private fun connectedController(): IRootController? =
+        networkController?.takeIf { it.asBinder().isBinderAlive }
+
+    private companion object {
+        const val BIND_TIMEOUT_MS = 15_000L
     }
 }

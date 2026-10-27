@@ -49,4 +49,52 @@ class NetworkModeTest {
         assertEquals("4G", NetworkMode.LTE_WCDMA.tileLabel)
         assertEquals("3G", NetworkMode.WCDMA_PREF.tileLabel)
     }
+
+    @Test
+    fun `there are 34 modes with unique RIL values`() {
+        assertEquals(34, NetworkMode.entries.size)
+        assertEquals(34, NetworkMode.entries.map { it.value }.toSet().size)
+        assertEquals((0..33).toSet(), NetworkMode.entries.map { it.value }.toSet())
+    }
+
+    @Test
+    fun `every mode allows at least one technology`() {
+        NetworkMode.entries.forEach { assertTrue("$it", it.technologies.isNotEmpty()) }
+    }
+
+    @Test
+    fun `tile label shows the highest generation allowed`() {
+        // CDMA-only is 2G; EvDo is 3G
+        assertEquals("2G", NetworkMode.CDMA_NO_EVDO.tileLabel)
+        assertEquals("3G", NetworkMode.EVDO_NO_CDMA.tileLabel)
+        assertEquals("3G", NetworkMode.CDMA.tileLabel)
+        // "Global" has no LTE, so it must not claim 4G
+        assertEquals("3G", NetworkMode.GLOBAL.tileLabel)
+        assertEquals("4G", NetworkMode.LTE_CDMA_EVDO_GSM_WCDMA.tileLabel)
+        assertEquals("3G", NetworkMode.TDSCDMA_ONLY.tileLabel)
+        assertEquals("5G", NetworkMode.NR_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA.tileLabel)
+    }
+
+    @Test
+    fun `fromTechnologies finds the mode allowing exactly those technologies`() {
+        assertEquals(NetworkMode.LTE_ONLY, NetworkMode.fromTechnologies(setOf(RadioTechnology.LTE)))
+        assertEquals(
+            NetworkMode.NR_LTE,
+            NetworkMode.fromTechnologies(setOf(RadioTechnology.NR, RadioTechnology.LTE))
+        )
+    }
+
+    @Test
+    fun `fromTechnologies returns null for unknown combinations`() {
+        assertNull(NetworkMode.fromTechnologies(emptySet()))
+        // NR + GSM without LTE isn't a defined mode
+        assertNull(NetworkMode.fromTechnologies(setOf(RadioTechnology.NR, RadioTechnology.GSM)))
+    }
+
+    @Test
+    fun `fromTechnologies returns the first of modes that share technologies`() {
+        val shared = setOf(RadioTechnology.GSM, RadioTechnology.WCDMA)
+        assertEquals(NetworkMode.WCDMA_PREF, NetworkMode.fromTechnologies(shared))
+        assertEquals(shared, NetworkMode.GSM_UMTS.technologies)
+    }
 }

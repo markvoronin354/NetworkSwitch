@@ -8,6 +8,8 @@ import com.markvoronin.networkswitch.data.repository.NetworkControlRepositoryImp
 import com.markvoronin.networkswitch.data.repository.PreferencesRepositoryImpl
 import com.markvoronin.networkswitch.domain.repository.NetworkControlRepository
 import com.markvoronin.networkswitch.domain.repository.PreferencesRepository
+import com.markvoronin.networkswitch.domain.repository.SurfaceRefresher
+import com.markvoronin.networkswitch.service.AndroidSurfaceRefresher
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -37,6 +39,12 @@ abstract class DataModule {
         preferencesRepositoryImpl: PreferencesRepositoryImpl
     ): PreferencesRepository
     
+    @Binds
+    @Singleton
+    abstract fun bindSurfaceRefresher(
+        androidSurfaceRefresher: AndroidSurfaceRefresher
+    ): SurfaceRefresher
+
     companion object {
         @Provides
         @Singleton

@@ -7,6 +7,7 @@ import com.markvoronin.networkswitch.domain.model.ToggleModeConfig
 import com.markvoronin.networkswitch.domain.usecase.GetToggleModeConfigUseCase
 import com.markvoronin.networkswitch.domain.usecase.UpdateToggleModeConfigUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,9 @@ class NetworkModeConfigViewModel @Inject constructor(
     private val _configSaved = MutableStateFlow(false)
     val configSaved: StateFlow<Boolean> = _configSaved.asStateFlow()
     
+    private val _saveFailed = MutableStateFlow(false)
+    val saveFailed: StateFlow<Boolean> = _saveFailed.asStateFlow()
+
     init {
         loadCurrentConfiguration()
     }
@@ -42,9 +46,10 @@ class NetworkModeConfigViewModel @Inject constructor(
             try {
                 val config = getToggleModeConfigUseCase()
                 _currentConfig.value = config
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                // Use default configuration if loading fails
-                _currentConfig.value = ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_LTE)
+                // Keep the default configuration if loading fails
             }
         }
     }
@@ -67,8 +72,10 @@ class NetworkModeConfigViewModel @Inject constructor(
             try {
                 updateToggleModeConfigUseCase(_currentConfig.value)
                 _configSaved.value = true
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                // Handle error (could show toast or snackbar)
+                _saveFailed.value = true
             } finally {
                 _isLoading.value = false
             }
@@ -77,5 +84,9 @@ class NetworkModeConfigViewModel @Inject constructor(
     
     fun resetSavedState() {
         _configSaved.value = false
+    }
+
+    fun resetSaveFailedState() {
+        _saveFailed.value = false
     }
 }

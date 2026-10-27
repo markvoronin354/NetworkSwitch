@@ -17,12 +17,14 @@ interface NetworkControlRepository {
     suspend fun checkCompatibility(method: ControlMethod): CompatibilityState
     
     /**
-     * Get current network mode
+     * Get the current network mode, or null if it can't be determined.
+     * When several modes are indistinguishable at the radio level, the
+     * configured toggle modes are preferred.
      */
     suspend fun getCurrentNetworkMode(subId: Int): NetworkMode?
     
     /**
-     * Set network mode
+     * Set network mode. Fails if the change could not be applied.
      */
     suspend fun setNetworkMode(subId: Int, mode: NetworkMode): Result<Unit>
     
@@ -34,7 +36,7 @@ interface NetworkControlRepository {
     /**
      * Request permission for the given control method (e.g. Shizuku)
      */
-    fun requestPermission(method: ControlMethod)
+    suspend fun requestPermission(method: ControlMethod)
 
     /**
      * Observe permission or binder state changes
@@ -90,4 +92,12 @@ interface PreferencesRepository {
      * Observe widget customization configuration changes
      */
     fun observeWidgetCustomizationConfig(): Flow<WidgetCustomizationConfig>
+}
+
+/**
+ * Refreshes the Quick Settings tile and home-screen widgets after state they display has changed
+ */
+interface SurfaceRefresher {
+    fun refreshTile()
+    fun refreshWidgets()
 }

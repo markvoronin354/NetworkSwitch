@@ -7,6 +7,7 @@ import com.markvoronin.networkswitch.domain.model.ToggleModeConfig
 import com.markvoronin.networkswitch.domain.model.WidgetCustomizationConfig
 import com.markvoronin.networkswitch.domain.repository.NetworkControlRepository
 import com.markvoronin.networkswitch.domain.repository.PreferencesRepository
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 class CheckCompatibilityUseCase @Inject constructor(
@@ -27,19 +28,20 @@ class ToggleNetworkModeUseCase @Inject constructor(
         return try {
             val toggleConfig = preferencesRepository.getToggleModeConfig()
             
-            // Get the next mode to switch to (no current mode detection needed)
+            // The stored toggle state decides the target, so detecting the current mode isn't needed
             val targetMode = toggleConfig.getNextMode()
-            
-            // Set the network mode
+
+            // Only flip the stored state once the device has actually applied the mode
             val result = networkControlRepository.setNetworkMode(subId, targetMode)
             
             if (result.isSuccess) {
-                // Update the toggle state for next time
                 val newConfig = toggleConfig.toggle()
                 preferencesRepository.setToggleModeConfig(newConfig)
             }
             
             result.map { targetMode }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -55,6 +57,8 @@ class GetCurrentNetworkModeUseCase @Inject constructor(
     suspend operator fun invoke(subId: Int): Result<NetworkMode?> {
         return try {
             Result.success(networkControlRepository.getCurrentNetworkMode(subId))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }

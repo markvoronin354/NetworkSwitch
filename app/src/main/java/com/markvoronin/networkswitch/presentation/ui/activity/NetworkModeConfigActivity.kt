@@ -61,15 +61,25 @@ private fun NetworkModeConfigScreen(
     val currentConfig by viewModel.currentConfig.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val configSaved by viewModel.configSaved.collectAsState()
+    val saveFailed by viewModel.saveFailed.collectAsState()
+    val savedMessage = stringResource(R.string.configuration_saved)
+    val saveFailedMessage = stringResource(R.string.configuration_save_failed)
     
     // Show toast when configuration is saved
     LaunchedEffect(configSaved) {
         if (configSaved) {
-            Toast.makeText(context, context.getString(R.string.configuration_saved), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, savedMessage, Toast.LENGTH_SHORT).show()
             viewModel.resetSavedState()
         }
     }
     
+    LaunchedEffect(saveFailed) {
+        if (saveFailed) {
+            Toast.makeText(context, saveFailedMessage, Toast.LENGTH_LONG).show()
+            viewModel.resetSaveFailedState()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -84,7 +94,7 @@ private fun NetworkModeConfigScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -201,13 +211,13 @@ private fun NetworkModeConfigScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Warning,
-                            contentDescription = "Warning",
+                            contentDescription = stringResource(R.string.warning),
                             tint = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Mode A and Mode B must be different",
+                            text = stringResource(R.string.modes_must_differ),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onErrorContainer

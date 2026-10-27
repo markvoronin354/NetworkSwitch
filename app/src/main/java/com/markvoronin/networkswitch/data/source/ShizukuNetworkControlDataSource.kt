@@ -5,58 +5,76 @@ import android.content.Context
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.IBinder
+import android.util.Log
+import com.markvoronin.networkswitch.BuildConfig
 import com.markvoronin.networkswitch.IShizukuController
+import com.markvoronin.networkswitch.R
 import com.markvoronin.networkswitch.domain.model.CompatibilityState
+import com.markvoronin.networkswitch.domain.model.ControlMethod
 import com.markvoronin.networkswitch.domain.model.NetworkMode
 import com.markvoronin.networkswitch.service.ShizukuControllerService
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import rikka.shizuku.Shizuku
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
-import com.markvoronin.networkswitch.BuildConfig
-import com.markvoronin.networkswitch.domain.model.ControlMethod
-import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Singleton
-class  ShizukuNetworkControlDataSource @Inject constructor(
+class ShizukuNetworkControlDataSource @Inject constructor(
     @ApplicationContext private val context: Context
 ) : NetworkControlDataSource {
-    
+
+    @Volatile
     private var userService: IShizukuController? = null
+
+    @Volatile
+    private var activeConnection: ServiceConnection? = null
+
     private val _isConnected = MutableStateFlow(false)
     val isConnected = _isConnected.asStateFlow()
-    
-    private companion object {
-        private const val SHIZUKU_PERMISSION_REQUEST_ID = 8
+
+    // Serializes binding so concurrent callers share one connection instead of each binding their own.
+    private val bindMutex = Mutex()
+
+    private val userServiceArgs by lazy {
+        Shizuku.UserServiceArgs(ComponentName(context, ShizukuControllerService::class.java))
+            .processNameSuffix("service")
+            .debuggable(BuildConfig.DEBUG)
+            .version(BuildConfig.VERSION_CODE)
+            .tag("NetworkSwitch")
     }
 
-    private val _shizukuPermissionStateChanged = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val shizukuPermissionStateChanged: kotlinx.coroutines.flow.SharedFlow<Unit> = _shizukuPermissionStateChanged.asSharedFlow()
+    private val _shizukuPermissionStateChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val shizukuPermissionStateChanged: SharedFlow<Unit> = _shizukuPermissionStateChanged.asSharedFlow()
 
-    override fun observePermissionStateChanges(): kotlinx.coroutines.flow.Flow<Unit> = shizukuPermissionStateChanged
+    override fun observePermissionStateChanges(): Flow<Unit> = shizukuPermissionStateChanged
 
     private val permissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
         if (requestCode == SHIZUKU_PERMISSION_REQUEST_ID) {
-            android.util.Log.d("NetworkSwitch", "Shizuku permission result: $grantResult")
+            Log.d(TAG, "Shizuku permission result: $grantResult")
             resetConnection()
             _shizukuPermissionStateChanged.tryEmit(Unit)
         }
     }
 
     private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
-        android.util.Log.d("NetworkSwitch", "Shizuku binder received")
+        Log.d(TAG, "Shizuku binder received")
         resetConnection()
         _shizukuPermissionStateChanged.tryEmit(Unit)
     }
 
     private val binderDeadListener = Shizuku.OnBinderDeadListener {
-        android.util.Log.d("NetworkSwitch", "Shizuku binder dead")
+        Log.d(TAG, "Shizuku binder dead")
         resetConnection()
         _shizukuPermissionStateChanged.tryEmit(Unit)
     }
@@ -67,154 +85,143 @@ class  ShizukuNetworkControlDataSource @Inject constructor(
             Shizuku.addBinderReceivedListener(binderReceivedListener)
             Shizuku.addBinderDeadListener(binderDeadListener)
         } catch (e: Exception) {
-            android.util.Log.e("NetworkSwitch", "Error registering Shizuku listeners", e)
+            Log.e(TAG, "Error registering Shizuku listeners", e)
         }
     }
 
     override fun requestPermission() {
         try {
             if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-                android.util.Log.d("NetworkSwitch", "Requesting Shizuku permission")
+                Log.d(TAG, "Requesting Shizuku permission")
                 Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_ID)
             }
         } catch (e: Exception) {
-            android.util.Log.e("NetworkSwitch", "Failed to request Shizuku permission", e)
+            Log.e(TAG, "Failed to request Shizuku permission", e)
         }
     }
 
     override suspend fun checkCompatibility(subId: Int): CompatibilityState {
         return try {
-            // Check if Shizuku service is running
             if (!Shizuku.pingBinder()) {
-                return CompatibilityState.Incompatible("Shizuku service not running")
+                return CompatibilityState.Incompatible(context.getString(R.string.shizuku_not_running))
             }
-            
-            // Check if Shizuku permission is granted
+
             val permission = try {
                 Shizuku.checkSelfPermission()
             } catch (e: Exception) {
                 PackageManager.PERMISSION_DENIED
             }
-            
+
             if (permission != PackageManager.PERMISSION_GRANTED) {
                 requestPermission()
                 return CompatibilityState.PermissionDenied(ControlMethod.SHIZUKU)
             }
-            
-            // Both service and permission checks passed
+
             CompatibilityState.Compatible
         } catch (e: Exception) {
-            CompatibilityState.Incompatible("Shizuku not available: ${e.message}")
+            CompatibilityState.Incompatible(context.getString(R.string.shizuku_unavailable, e.message))
         }
     }
 
     override suspend fun getCurrentNetworkMode(subId: Int): NetworkMode? {
-        return if (ensureServiceBinding()) {
-            try {
-                val modeValue = userService?.getCurrentNetworkMode(subId) ?: -1
-                if (modeValue == -1) null else NetworkMode.fromValue(modeValue)
-            } catch (e: Exception) {
-                null
-            }
-        } else {
+        if (!ensureServiceBinding()) return null
+        return try {
+            val modeValue = userService?.getCurrentNetworkMode(subId) ?: return null
+            NetworkMode.fromValue(modeValue)
+        } catch (e: Exception) {
             null
         }
     }
 
     override suspend fun setNetworkMode(subId: Int, mode: NetworkMode) {
-        if (ensureServiceBinding()) {
-            try {
-                userService?.setNetworkMode(subId, mode.value)
-            } catch (e: Exception) {
-                throw e
-            }
-        } else {
+        if (!ensureServiceBinding()) {
             throw SecurityException("Shizuku permission not granted or service binding failed")
+        }
+        val service = userService ?: throw IllegalStateException("Shizuku service is not available")
+        if (!service.setNetworkMode(subId, mode.value)) {
+            throw IllegalStateException("The device rejected network mode ${mode.displayName}")
         }
     }
 
     override fun isConnected(): Boolean = _isConnected.value
-    
+
     override fun resetConnection() {
+        val connection = activeConnection
+        activeConnection = null
         userService = null
         _isConnected.value = false
-    }
-
-    /**
-     * Simple permission and service check without delays or complex logic
-     */
-    private fun hasPermissionAndService(): Boolean {
-        return try {
-            // Only check if service is already connected, don't call Shizuku APIs that might block
-            userService != null && _isConnected.value && userService?.asBinder()?.pingBinder() == true
-        } catch (e: Exception) {
-            false
+        if (connection != null) {
+            try {
+                Shizuku.unbindUserService(userServiceArgs, connection, false)
+            } catch (_: Exception) {
+                // Shizuku not running; nothing to unbind
+            }
         }
     }
 
+    private fun isServiceAlive(): Boolean =
+        userService != null && _isConnected.value && userService?.asBinder()?.pingBinder() == true
+
     /**
-     * Ensure service binding for actual operations (not compatibility checks)
+     * Ensures a live user-service connection exists, binding one if needed.
+     * Returns false if Shizuku isn't running, permission isn't granted, or binding times out.
      */
     private suspend fun ensureServiceBinding(): Boolean {
-        // Check permissions first
-        if (!Shizuku.pingBinder() || Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+        val hasPermission = try {
+            Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+        } catch (e: Exception) {
+            false
+        }
+        if (!hasPermission) {
             resetConnection()
             return false
         }
-        
-        // If service is already connected and binder is alive, return true
-        if (userService != null && _isConnected.value && userService?.asBinder()?.pingBinder() == true) {
-            return true
-        }
-        
-        resetConnection()
-        
-        // Bind service asynchronously with timeout
-        return try {
-            suspendCancellableCoroutine { continuation ->
-                val args = Shizuku.UserServiceArgs(ComponentName(context, ShizukuControllerService::class.java))
-                    .processNameSuffix("service")
-                    .debuggable(BuildConfig.DEBUG)
-                    .version(BuildConfig.VERSION_CODE)
-                    .tag("NetworkSwitch")
 
-                val serviceConnection = object : ServiceConnection {
-                    override fun onServiceConnected(componentName: ComponentName?, binder: IBinder?) {
-                        if (binder != null && binder.pingBinder()) {
-                            userService = IShizukuController.Stub.asInterface(binder)
-                            _isConnected.value = true
-                            if (continuation.isActive) {
-                                continuation.resume(true)
-                            }
-                        } else {
-                            if (continuation.isActive) {
+        if (isServiceAlive()) return true
+
+        return bindMutex.withLock {
+            // Another caller may have connected while we waited for the lock.
+            if (isServiceAlive()) return@withLock true
+            resetConnection()
+
+            val bound = withTimeoutOrNull(BIND_TIMEOUT_MS) {
+                suspendCancellableCoroutine<Boolean> { continuation ->
+                    val connection = object : ServiceConnection {
+                        override fun onServiceConnected(componentName: ComponentName?, binder: IBinder?) {
+                            if (binder != null && binder.pingBinder()) {
+                                userService = IShizukuController.Stub.asInterface(binder)
+                                _isConnected.value = true
+                                if (continuation.isActive) continuation.resume(true)
+                            } else if (continuation.isActive) {
                                 continuation.resume(false)
                             }
                         }
+
+                        override fun onServiceDisconnected(componentName: ComponentName?) {
+                            userService = null
+                            _isConnected.value = false
+                        }
                     }
+                    activeConnection = connection
+                    continuation.invokeOnCancellation { resetConnection() }
 
-                    override fun onServiceDisconnected(componentName: ComponentName?) {
-                        userService = null
-                        _isConnected.value = false
-                    }
-                }
-
-                continuation.invokeOnCancellation {
-                    userService = null
-                    _isConnected.value = false
-                }
-
-                try {
-                    Shizuku.bindUserService(args, serviceConnection)
-                } catch (e: Exception) {
-                    if (continuation.isActive) {
-                        continuation.resume(false)
+                    try {
+                        Shizuku.bindUserService(userServiceArgs, connection)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to bind Shizuku user service", e)
+                        if (continuation.isActive) continuation.resume(false)
                     }
                 }
-            }
-        } catch (e: Exception) {
-            _isConnected.value = false
-            false
+            } ?: false
+
+            if (!bound) resetConnection()
+            bound
         }
+    }
+
+    private companion object {
+        const val TAG = "NetworkSwitch"
+        const val SHIZUKU_PERMISSION_REQUEST_ID = 8
+        const val BIND_TIMEOUT_MS = 15_000L
     }
 }
