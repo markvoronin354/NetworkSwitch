@@ -27,23 +27,37 @@ class ToggleNetworkModeUseCase @Inject constructor(
     suspend operator fun invoke(subId: Int): Result<NetworkMode> {
         return try {
             val toggleConfig = preferencesRepository.getToggleModeConfig()
-            
-            // The stored toggle state decides the target, so detecting the current mode isn't needed
-            val targetMode = toggleConfig.getNextMode()
+            val targetMode = chooseTarget(toggleConfig, networkControlRepository.getCurrentNetworkMode(subId))
 
-            // Only flip the stored state once the device has actually applied the mode
+            // Only update the stored state once the device has actually applied the mode
             val result = networkControlRepository.setNetworkMode(subId, targetMode)
-            
+
             if (result.isSuccess) {
-                val newConfig = toggleConfig.toggle()
-                preferencesRepository.setToggleModeConfig(newConfig)
+                preferencesRepository.setToggleModeConfig(
+                    toggleConfig.copy(nextModeIsB = targetMode == toggleConfig.modeA)
+                )
             }
-            
+
             result.map { targetMode }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Prefers the real current mode over the stored flag, so the toggle still works after the
+     * mode was changed outside the app. Falls back to the stored flag when the current mode is
+     * unknown, matches neither mode, or can't be told apart (both modes allow the same technologies).
+     */
+    private fun chooseTarget(config: ToggleModeConfig, current: NetworkMode?): NetworkMode {
+        val isModeA = current?.technologies == config.modeA.technologies
+        val isModeB = current?.technologies == config.modeB.technologies
+        return when {
+            isModeA && !isModeB -> config.modeB
+            isModeB && !isModeA -> config.modeA
+            else -> config.getNextMode()
         }
     }
 }

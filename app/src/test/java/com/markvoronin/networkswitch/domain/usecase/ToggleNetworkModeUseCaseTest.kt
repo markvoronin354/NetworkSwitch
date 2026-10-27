@@ -28,6 +28,8 @@ class ToggleNetworkModeUseCaseTest {
         networkControlRepository = mockk()
         preferencesRepository = mockk()
         useCase = ToggleNetworkModeUseCase(networkControlRepository, preferencesRepository)
+        // By default the current mode can't be read, so the stored flag decides
+        coEvery { networkControlRepository.getCurrentNetworkMode(any()) } returns null
     }
     
     @Test
@@ -130,5 +132,70 @@ class ToggleNetworkModeUseCaseTest {
         // Then
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is RuntimeException)
+    }
+
+    @Test
+    fun `should follow the real mode when the stored flag is out of sync`() = runTest {
+        // Flag says "next is B", but the device is already on B
+        val config = ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_ONLY, nextModeIsB = true)
+        coEvery { preferencesRepository.getToggleModeConfig() } returns config
+        coEvery { networkControlRepository.getCurrentNetworkMode(testSubId) } returns NetworkMode.NR_ONLY
+        coEvery { networkControlRepository.setNetworkMode(testSubId, NetworkMode.LTE_ONLY) } returns Result.success(Unit)
+        coEvery { preferencesRepository.setToggleModeConfig(any()) } returns Unit
+
+        val result = useCase(testSubId)
+
+        assertEquals(NetworkMode.LTE_ONLY, result.getOrNull())
+        // Back on A, so the next switch goes to B
+        coVerify { preferencesRepository.setToggleModeConfig(config.copy(nextModeIsB = true)) }
+    }
+
+    @Test
+    fun `should switch to mode B when the device is on mode A`() = runTest {
+        val config = ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_ONLY, nextModeIsB = false)
+        coEvery { preferencesRepository.getToggleModeConfig() } returns config
+        coEvery { networkControlRepository.getCurrentNetworkMode(testSubId) } returns NetworkMode.LTE_ONLY
+        coEvery { networkControlRepository.setNetworkMode(testSubId, NetworkMode.NR_ONLY) } returns Result.success(Unit)
+        coEvery { preferencesRepository.setToggleModeConfig(any()) } returns Unit
+
+        val result = useCase(testSubId)
+
+        assertEquals(NetworkMode.NR_ONLY, result.getOrNull())
+        coVerify { preferencesRepository.setToggleModeConfig(config.copy(nextModeIsB = false)) }
+    }
+
+    @Test
+    fun `should fall back to the stored flag when the device is on neither mode`() = runTest {
+        val config = ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_ONLY, nextModeIsB = true)
+        coEvery { preferencesRepository.getToggleModeConfig() } returns config
+        coEvery { networkControlRepository.getCurrentNetworkMode(testSubId) } returns NetworkMode.GSM_ONLY
+        coEvery { networkControlRepository.setNetworkMode(testSubId, NetworkMode.NR_ONLY) } returns Result.success(Unit)
+        coEvery { preferencesRepository.setToggleModeConfig(any()) } returns Unit
+
+        assertEquals(NetworkMode.NR_ONLY, useCase(testSubId).getOrNull())
+    }
+
+    @Test
+    fun `should treat a mode with identical technologies as the configured mode`() = runTest {
+        // The radio can't tell "3G preferred" from "Auto"; the device reports WCDMA_PREF
+        val config = ToggleModeConfig(NetworkMode.GSM_UMTS, NetworkMode.LTE_ONLY, nextModeIsB = false)
+        coEvery { preferencesRepository.getToggleModeConfig() } returns config
+        coEvery { networkControlRepository.getCurrentNetworkMode(testSubId) } returns NetworkMode.WCDMA_PREF
+        coEvery { networkControlRepository.setNetworkMode(testSubId, NetworkMode.LTE_ONLY) } returns Result.success(Unit)
+        coEvery { preferencesRepository.setToggleModeConfig(any()) } returns Unit
+
+        // Flag says "next is A", but the device is on A, so it switches to B
+        assertEquals(NetworkMode.LTE_ONLY, useCase(testSubId).getOrNull())
+    }
+
+    @Test
+    fun `should fall back to the stored flag when both modes allow the same technologies`() = runTest {
+        val config = ToggleModeConfig(NetworkMode.WCDMA_PREF, NetworkMode.GSM_UMTS, nextModeIsB = true)
+        coEvery { preferencesRepository.getToggleModeConfig() } returns config
+        coEvery { networkControlRepository.getCurrentNetworkMode(testSubId) } returns NetworkMode.WCDMA_PREF
+        coEvery { networkControlRepository.setNetworkMode(testSubId, NetworkMode.GSM_UMTS) } returns Result.success(Unit)
+        coEvery { preferencesRepository.setToggleModeConfig(any()) } returns Unit
+
+        assertEquals(NetworkMode.GSM_UMTS, useCase(testSubId).getOrNull())
     }
 }
