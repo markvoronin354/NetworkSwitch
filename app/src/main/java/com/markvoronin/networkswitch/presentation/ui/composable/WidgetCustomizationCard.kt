@@ -30,6 +30,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.markvoronin.networkswitch.R
@@ -46,6 +48,12 @@ fun WidgetCustomizationCard(
     onConfigChanged: (WidgetCustomizationConfig) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Drags update these drafts (and the live preview) only; the config is saved,
+    // and the real widgets re-rendered, once when the gesture ends.
+    var draftColor by remember(config.customColorHex) { mutableIntStateOf(config.customColorHex) }
+    var draftOpacity by remember(config.opacity) { mutableFloatStateOf(config.opacity) }
+    val previewConfig = config.copy(customColorHex = draftColor, opacity = draftOpacity)
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -65,21 +73,21 @@ fun WidgetCustomizationCard(
         ) {
             Column {
                 Text(
-                    text = "Widget Customization",
+                    text = stringResource(R.string.widget_customization),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Personalize the appearance of your home screen widget",
+                    text = stringResource(R.string.widget_customization_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             // Live Widget Preview
-            WidgetPreviewBox(config = config)
+            WidgetPreviewBox(config = previewConfig)
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
@@ -91,13 +99,13 @@ fun WidgetCustomizationCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Match System Theme",
+                        text = stringResource(R.string.match_system_theme),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Automatically adapts widget color to dark or light system mode",
+                        text = stringResource(R.string.match_system_theme_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -121,7 +129,7 @@ fun WidgetCustomizationCard(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "Custom Widget Color",
+                        text = stringResource(R.string.custom_widget_color),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -129,16 +137,18 @@ fun WidgetCustomizationCard(
 
                     // Color Wheel
                     ColorWheelPicker(
-                        currentColor = Color(config.customColorHex),
-                        onColorSelected = { selectedColor ->
-                            onConfigChanged(config.copy(customColorHex = selectedColor.toArgb()))
+                        currentColor = Color(draftColor),
+                        onColorSelected = { selectedColor -> draftColor = selectedColor.toArgb() },
+                        onColorSelectionFinished = {
+                            onConfigChanged(config.copy(customColorHex = draftColor))
                         }
                     )
 
                     // Color Palette Presets
                     ColorPresets(
-                        selectedColorHex = config.customColorHex,
+                        selectedColorHex = draftColor,
                         onColorSelected = { hex ->
+                            draftColor = hex
                             onConfigChanged(config.copy(customColorHex = hex))
                         }
                     )
@@ -157,19 +167,19 @@ fun WidgetCustomizationCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Opacity",
+                        text = stringResource(R.string.opacity),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    val percent = (config.opacity * 100).toInt()
+                    val percent = (draftOpacity * 100).toInt()
                     val transPercent = 100 - percent
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
-                            text = "$percent% ($transPercent% transparent)",
+                            text = stringResource(R.string.opacity_value, percent, transPercent),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -179,10 +189,9 @@ fun WidgetCustomizationCard(
                 }
 
                 Slider(
-                    value = config.opacity,
-                    onValueChange = { newOpacity ->
-                        onConfigChanged(config.copy(opacity = newOpacity))
-                    },
+                    value = draftOpacity,
+                    onValueChange = { newOpacity -> draftOpacity = newOpacity },
+                    onValueChangeFinished = { onConfigChanged(config.copy(opacity = draftOpacity)) },
                     valueRange = 0.0f..1.0f
                 )
             }
@@ -265,7 +274,7 @@ private fun WidgetPreviewBox(config: WidgetCustomizationConfig) {
                 ) {
                     Image(
                         painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                        contentDescription = "Network Switch Logo",
+                        contentDescription = stringResource(R.string.logo_description),
                         modifier = Modifier.size(44.dp)
                     )
                 }
@@ -276,13 +285,13 @@ private fun WidgetPreviewBox(config: WidgetCustomizationConfig) {
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "5G",
+                        text = stringResource(R.string.widget_default_title),
                         color = textColor,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
                     Text(
-                        text = "Next: 4G",
+                        text = stringResource(R.string.widget_default_subtitle),
                         color = subtitleColor,
                         fontSize = 12.sp
                     )
@@ -295,9 +304,11 @@ private fun WidgetPreviewBox(config: WidgetCustomizationConfig) {
 @Composable
 private fun ColorWheelPicker(
     currentColor: Color,
-    onColorSelected: (Color) -> Unit
+    onColorSelected: (Color) -> Unit,
+    onColorSelectionFinished: () -> Unit
 ) {
     val currentOnColorSelected by rememberUpdatedState(onColorSelected)
+    val currentOnSelectionFinished by rememberUpdatedState(onColorSelectionFinished)
 
     // State for HSV
     var currentHue by remember { mutableFloatStateOf(0f) }
@@ -347,7 +358,7 @@ private fun ColorWheelPicker(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "Brightness",
+                text = stringResource(R.string.brightness),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -358,7 +369,8 @@ private fun ColorWheelPicker(
                 valValue = currentVal,
                 onValChanged = { newVal ->
                     emitColor(currentHue, currentSat, newVal)
-                }
+                },
+                onValChangeFinished = { currentOnSelectionFinished() }
             )
         }
 
@@ -370,7 +382,7 @@ private fun ColorWheelPicker(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "Hue & Saturation",
+                text = stringResource(R.string.hue_saturation),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -381,50 +393,20 @@ private fun ColorWheelPicker(
                     modifier = Modifier
                         .size(wheelSizeDp)
                         .pointerInput(Unit) {
-                            fun processInput(offset: Offset) {
-                                val centerX = size.width / 2f
-                                val centerY = size.height / 2f
-                                val dx = offset.x - centerX
-                                val dy = offset.y - centerY
-                                val radius = size.width / 2f
-
-                                val distance = sqrt(dx * dx + dy * dy)
-                                val clampedDistance = distance.coerceAtMost(radius)
-
-                                var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
-                                if (angle < 0) angle += 360f
-
-                                val sat = (clampedDistance / radius).coerceIn(0f, 1f)
-
-                                emitColor(angle, sat, currentVal)
-                            }
-
                             detectTapGestures { offset ->
-                                processInput(offset)
+                                val (hue, sat) = hueAndSaturationAt(offset, size)
+                                emitColor(hue, sat, currentVal)
+                                currentOnSelectionFinished()
                             }
                         }
                         .pointerInput(Unit) {
-                            fun processInput(offset: Offset) {
-                                val centerX = size.width / 2f
-                                val centerY = size.height / 2f
-                                val dx = offset.x - centerX
-                                val dy = offset.y - centerY
-                                val radius = size.width / 2f
-
-                                val distance = sqrt(dx * dx + dy * dy)
-                                val clampedDistance = distance.coerceAtMost(radius)
-
-                                var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
-                                if (angle < 0) angle += 360f
-
-                                val sat = (clampedDistance / radius).coerceIn(0f, 1f)
-
-                                emitColor(angle, sat, currentVal)
-                            }
-
-                            detectDragGestures { change, _ ->
+                            detectDragGestures(
+                                onDragEnd = { currentOnSelectionFinished() },
+                                onDragCancel = { currentOnSelectionFinished() }
+                            ) { change, _ ->
                                 change.consume()
-                                processInput(change.position)
+                                val (hue, sat) = hueAndSaturationAt(change.position, size)
+                                emitColor(hue, sat, currentVal)
                             }
                         }
                 ) {
@@ -484,6 +466,19 @@ private fun ColorWheelPicker(
     }
 }
 
+/** Maps a touch point on the color wheel to hue (degrees) and saturation (0..1). */
+private fun hueAndSaturationAt(offset: Offset, size: IntSize): Pair<Float, Float> {
+    val radius = size.width / 2f
+    val dx = offset.x - radius
+    val dy = offset.y - size.height / 2f
+
+    var hue = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
+    if (hue < 0) hue += 360f
+
+    val saturation = (sqrt(dx * dx + dy * dy) / radius).coerceIn(0f, 1f)
+    return hue to saturation
+}
+
 @Composable
 private fun VerticalBrightnessSlider(
     height: Dp,
@@ -491,9 +486,11 @@ private fun VerticalBrightnessSlider(
     hue: Float,
     sat: Float,
     valValue: Float,
-    onValChanged: (Float) -> Unit
+    onValChanged: (Float) -> Unit,
+    onValChangeFinished: () -> Unit
 ) {
     val currentOnValChanged by rememberUpdatedState(onValChanged)
+    val currentOnValChangeFinished by rememberUpdatedState(onValChangeFinished)
 
     val topColor = remember(hue, sat) {
         Color(AndroidColor.HSVToColor(floatArrayOf(hue, sat, 1.0f)))
@@ -510,26 +507,18 @@ private fun VerticalBrightnessSlider(
                 )
             )
             .pointerInput(Unit) {
-                fun processTouch(offsetY: Float) {
-                    val clampedY = offsetY.coerceIn(0f, size.height.toFloat())
-                    val newFraction = 1.0f - (clampedY / size.height.toFloat())
-                    currentOnValChanged(newFraction.coerceIn(0.05f, 1.0f))
-                }
-
                 detectTapGestures { offset ->
-                    processTouch(offset.y)
+                    currentOnValChanged(brightnessAt(offset.y, size.height))
+                    currentOnValChangeFinished()
                 }
             }
             .pointerInput(Unit) {
-                fun processTouch(offsetY: Float) {
-                    val clampedY = offsetY.coerceIn(0f, size.height.toFloat())
-                    val newFraction = 1.0f - (clampedY / size.height.toFloat())
-                    currentOnValChanged(newFraction.coerceIn(0.05f, 1.0f))
-                }
-
-                detectDragGestures { change, _ ->
+                detectDragGestures(
+                    onDragEnd = { currentOnValChangeFinished() },
+                    onDragCancel = { currentOnValChangeFinished() }
+                ) { change, _ ->
                     change.consume()
-                    processTouch(change.position.y)
+                    currentOnValChanged(brightnessAt(change.position.y, size.height))
                 }
             }
     ) {
@@ -552,6 +541,10 @@ private fun VerticalBrightnessSlider(
         }
     }
 }
+
+/** Maps a vertical touch position to brightness (top = brightest), keeping a floor so the color never goes fully black. */
+private fun brightnessAt(offsetY: Float, heightPx: Int): Float =
+    (1.0f - offsetY.coerceIn(0f, heightPx.toFloat()) / heightPx).coerceIn(0.05f, 1.0f)
 
 @Composable
 private fun ColorPresets(
@@ -576,7 +569,7 @@ private fun ColorPresets(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "Preset Colors",
+            text = stringResource(R.string.preset_colors),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant
