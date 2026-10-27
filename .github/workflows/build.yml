@@ -10,6 +10,7 @@ on:
     types: [opened, synchronize, reopened]
     paths-ignore:
       - 'README.md'
+  workflow_dispatch:
 
 jobs:
   build:
