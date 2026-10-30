@@ -7,7 +7,7 @@ plugins {
 
 // CI passes -PversionNameOverride=<tag without "v"> for releases. The version code is derived
 // from the name (major * 10000 + minor * 100 + patch) so it always increases with the version.
-val appVersionName = providers.gradleProperty("versionNameOverride").getOrElse("2.7.0")
+val appVersionName = providers.gradleProperty("versionNameOverride").getOrElse("2.8.0")
 val appVersionCode = appVersionName.split(".").map { it.toInt() }
     .let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
 
