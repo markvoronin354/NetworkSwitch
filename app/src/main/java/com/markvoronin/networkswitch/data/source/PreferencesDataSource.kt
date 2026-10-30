@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.markvoronin.networkswitch.domain.model.ControlMethod
 import com.markvoronin.networkswitch.domain.model.NetworkMode
@@ -41,6 +42,8 @@ class PreferencesDataSource @Inject constructor(
         private const val DEFAULT_CUSTOM_COLOR = 0xFF333333.toInt()
         private const val DEFAULT_OPACITY = 0.50f
     }
+
+    private fun speedTestKey(mode: NetworkMode) = longPreferencesKey("speed_test_${mode.name}")
 
     private fun Preferences.toControlMethod(): ControlMethod {
         val name = this[CONTROL_METHOD_KEY] ?: return DEFAULT_CONTROL_METHOD
@@ -96,4 +99,17 @@ class PreferencesDataSource @Inject constructor(
 
     fun observeWidgetCustomizationConfig(): Flow<WidgetCustomizationConfig> =
         dataStore.data.map { it.toWidgetCustomizationConfig() }
+
+    fun observeSpeedTestResults(): Flow<Map<NetworkMode, Long>> =
+        dataStore.data.map { preferences ->
+            NetworkMode.entries.mapNotNull { mode ->
+                preferences[speedTestKey(mode)]?.let { mode to it }
+            }.toMap()
+        }
+
+    suspend fun setSpeedTestResult(mode: NetworkMode, bitsPerSecond: Long) {
+        dataStore.edit { preferences ->
+            preferences[speedTestKey(mode)] = bitsPerSecond
+        }
+    }
 }

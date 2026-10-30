@@ -2,6 +2,7 @@ package com.markvoronin.networkswitch.data.repository
 
 import com.markvoronin.networkswitch.data.source.PreferencesDataSource
 import com.markvoronin.networkswitch.domain.model.ControlMethod
+import com.markvoronin.networkswitch.domain.model.NetworkMode
 import com.markvoronin.networkswitch.domain.model.ToggleModeConfig
 import com.markvoronin.networkswitch.domain.model.WidgetCustomizationConfig
 import com.markvoronin.networkswitch.domain.repository.PreferencesRepository
@@ -57,5 +58,13 @@ class PreferencesRepositoryImpl @Inject constructor(
 
     override fun observeWidgetCustomizationConfig(): Flow<WidgetCustomizationConfig> {
         return preferencesDataSource.observeWidgetCustomizationConfig()
+    }
+
+    override fun observeSpeedTestResults(): Flow<Map<NetworkMode, Long>> {
+        return preferencesDataSource.observeSpeedTestResults()
+    }
+
+    override suspend fun setSpeedTestResult(mode: NetworkMode, bitsPerSecond: Long) {
+        preferencesDataSource.setSpeedTestResult(mode, bitsPerSecond)
     }
 }

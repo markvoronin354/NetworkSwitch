@@ -5,7 +5,9 @@ import com.markvoronin.networkswitch.domain.model.ControlMethod
 import com.markvoronin.networkswitch.domain.model.NetworkMode
 import com.markvoronin.networkswitch.domain.model.ToggleModeConfig
 import com.markvoronin.networkswitch.domain.repository.NetworkControlRepository
+import com.markvoronin.networkswitch.domain.repository.NetworkStatsRepository
 import com.markvoronin.networkswitch.domain.repository.PreferencesRepository
+import com.markvoronin.networkswitch.domain.repository.SpeedTestRepository
 import com.markvoronin.networkswitch.domain.usecase.CheckCompatibilityUseCase
 import com.markvoronin.networkswitch.domain.usecase.GetCurrentNetworkModeUseCase
 import com.markvoronin.networkswitch.domain.usecase.ToggleNetworkModeUseCase
@@ -38,9 +40,12 @@ class MainViewModelTest {
     private lateinit var updateControlMethod: UpdateControlMethodUseCase
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var networkControlRepository: NetworkControlRepository
+    private lateinit var networkStatsRepository: NetworkStatsRepository
+    private lateinit var speedTestRepository: SpeedTestRepository
 
     private val controlMethod = MutableStateFlow(ControlMethod.SHIZUKU)
     private val toggleConfig = MutableStateFlow(ToggleModeConfig(NetworkMode.LTE_ONLY, NetworkMode.NR_LTE))
+    private val speedTestResults = MutableStateFlow<Map<NetworkMode, Long>>(emptyMap())
 
     @Before
     fun setUp() {
@@ -50,11 +55,14 @@ class MainViewModelTest {
         updateControlMethod = mockk(relaxed = true)
         preferencesRepository = mockk()
         networkControlRepository = mockk(relaxed = true)
+        networkStatsRepository = mockk(relaxed = true)
+        speedTestRepository = mockk()
 
         coEvery { checkCompatibility() } returns CompatibilityState.Compatible
         coEvery { getCurrentNetworkMode(any()) } returns Result.success(NetworkMode.LTE_ONLY)
         coEvery { preferencesRepository.observeControlMethod() } returns controlMethod
         coEvery { preferencesRepository.observeToggleModeConfig() } returns toggleConfig
+        coEvery { preferencesRepository.observeSpeedTestResults() } returns speedTestResults
         coEvery { networkControlRepository.observePermissionStateChanges() } returns emptyFlow()
     }
 
@@ -64,7 +72,9 @@ class MainViewModelTest {
         toggleNetworkMode,
         updateControlMethod,
         preferencesRepository,
-        networkControlRepository
+        networkControlRepository,
+        networkStatsRepository,
+        speedTestRepository
     )
 
     @Test
@@ -75,6 +85,33 @@ class MainViewModelTest {
 
         assertEquals(CompatibilityState.Compatible, viewModel.compatibilityState)
         assertEquals(NetworkMode.LTE_ONLY, viewModel.currentNetworkMode)
+    }
+
+    @Test
+    fun `runSpeedTest saves the result under the current mode`() = runTest {
+        coEvery { speedTestRepository.runDownloadTest() } returns Result.success(50_000_000L)
+        coEvery { preferencesRepository.setSpeedTestResult(any(), any()) } returns Unit
+        val viewModel = createViewModel()
+        viewModel.refreshAllData()
+
+        viewModel.runSpeedTest()
+
+        coVerify { preferencesRepository.setSpeedTestResult(NetworkMode.LTE_ONLY, 50_000_000L) }
+        assertFalse(viewModel.isSpeedTestRunning)
+        assertFalse(viewModel.speedTestFailed)
+    }
+
+    @Test
+    fun `runSpeedTest flags a failure and saves nothing`() = runTest {
+        coEvery { speedTestRepository.runDownloadTest() } returns Result.failure(java.io.IOException())
+        val viewModel = createViewModel()
+        viewModel.refreshAllData()
+
+        viewModel.runSpeedTest()
+
+        assertTrue(viewModel.speedTestFailed)
+        assertFalse(viewModel.isSpeedTestRunning)
+        coVerify(exactly = 0) { preferencesRepository.setSpeedTestResult(any(), any()) }
     }
 
     @Test

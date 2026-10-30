@@ -13,6 +13,7 @@ import com.markvoronin.networkswitch.domain.model.ToggleModeConfig
 import com.markvoronin.networkswitch.domain.repository.NetworkControlRepository
 import com.markvoronin.networkswitch.domain.repository.NetworkStatsRepository
 import com.markvoronin.networkswitch.domain.repository.PreferencesRepository
+import com.markvoronin.networkswitch.domain.repository.SpeedTestRepository
 import com.markvoronin.networkswitch.domain.usecase.CheckCompatibilityUseCase
 import com.markvoronin.networkswitch.domain.usecase.GetCurrentNetworkModeUseCase
 import com.markvoronin.networkswitch.domain.usecase.ToggleNetworkModeUseCase
@@ -33,7 +34,8 @@ class MainViewModel @Inject constructor(
     private val updateControlMethodUseCase: UpdateControlMethodUseCase,
     private val preferencesRepository: PreferencesRepository,
     private val networkControlRepository: NetworkControlRepository,
-    private val networkStatsRepository: NetworkStatsRepository
+    private val networkStatsRepository: NetworkStatsRepository,
+    private val speedTestRepository: SpeedTestRepository
 ) : ViewModel() {
 
     // Current control method selection
@@ -62,11 +64,24 @@ class MainViewModel @Inject constructor(
     var networkStats by mutableStateOf(NetworkStats())
         private set
 
+    var isSpeedTestRunning by mutableStateOf(false)
+        private set
+
+    // Set when the last speed test failed, until the UI acknowledges it
+    var speedTestFailed by mutableStateOf(false)
+        private set
+
+    // Last speed test result (bits per second) for each network mode
+    var speedTestResults by mutableStateOf<Map<NetworkMode, Long>>(emptyMap())
+        private set
+
     private var compatibilityJob: Job? = null
+    private var speedTestJob: Job? = null
 
     init {
         observeControlMethodPreference()
         observeToggleModeConfig()
+        observeSpeedTestResults()
         observePermissionStateChanges()
         // The initial compatibility check and state refresh happen in refreshAllData() from onResume
     }
@@ -100,6 +115,14 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.observeToggleModeConfig().collectLatest { newConfig ->
                 toggleModeConfig = newConfig
+            }
+        }
+    }
+
+    private fun observeSpeedTestResults() {
+        viewModelScope.launch {
+            preferencesRepository.observeSpeedTestResults().collectLatest { results ->
+                speedTestResults = results
             }
         }
     }
@@ -155,6 +178,8 @@ class MainViewModel @Inject constructor(
     fun toggleNetworkMode() {
         if (isLoading) return
 
+        // A result measured across a mode switch would be filed under the wrong mode
+        speedTestJob?.cancel()
         isLoading = true
         viewModelScope.launch {
             try {
@@ -170,6 +195,29 @@ class MainViewModel @Inject constructor(
                 isLoading = false
             }
         }
+    }
+
+    /**
+     * Run a speed test and file the result under the current network mode
+     */
+    fun runSpeedTest() {
+        val mode = currentNetworkMode ?: return
+        if (isSpeedTestRunning) return
+
+        isSpeedTestRunning = true
+        speedTestJob = viewModelScope.launch {
+            try {
+                speedTestRepository.runDownloadTest()
+                    .onSuccess { preferencesRepository.setSpeedTestResult(mode, it) }
+                    .onFailure { speedTestFailed = true }
+            } finally {
+                isSpeedTestRunning = false
+            }
+        }
+    }
+
+    fun dismissSpeedTestFailure() {
+        speedTestFailed = false
     }
 
     /**

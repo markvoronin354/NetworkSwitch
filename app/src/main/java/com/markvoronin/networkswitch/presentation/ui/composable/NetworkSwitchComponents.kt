@@ -331,6 +331,10 @@ fun NetworkToggleCard(
 @Composable
 fun NetworkStatsCard(
     stats: NetworkStats,
+    speedTestResults: Map<NetworkMode, Long>,
+    isSpeedTestRunning: Boolean,
+    canRunSpeedTest: Boolean,
+    onRunSpeedTestClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     CardSection(
@@ -366,6 +370,57 @@ fun NetworkStatsCard(
                 )
             }
         }
+
+        if (speedTestResults.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.speed_test_results),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                speedTestResults.forEach { (mode, bitsPerSecond) ->
+                    StatRow(label = mode.displayName, value = Utils.formatSpeed(bitsPerSecond))
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = onRunSpeedTestClick,
+            enabled = canRunSpeedTest && !isSpeedTestRunning,
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 52.dp)
+        ) {
+            if (isSpeedTestRunning) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.5.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+            Text(
+                text = stringResource(
+                    if (isSpeedTestRunning) R.string.speed_test_running else R.string.run_speed_test
+                ),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.speed_test_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

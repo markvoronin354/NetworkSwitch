@@ -7,9 +7,11 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.markvoronin.networkswitch.data.repository.NetworkControlRepositoryImpl
 import com.markvoronin.networkswitch.data.repository.NetworkStatsRepositoryImpl
 import com.markvoronin.networkswitch.data.repository.PreferencesRepositoryImpl
+import com.markvoronin.networkswitch.data.repository.SpeedTestRepositoryImpl
 import com.markvoronin.networkswitch.domain.repository.NetworkControlRepository
 import com.markvoronin.networkswitch.domain.repository.NetworkStatsRepository
 import com.markvoronin.networkswitch.domain.repository.PreferencesRepository
+import com.markvoronin.networkswitch.domain.repository.SpeedTestRepository
 import com.markvoronin.networkswitch.domain.repository.SurfaceRefresher
 import com.markvoronin.networkswitch.service.AndroidSurfaceRefresher
 import dagger.Binds
@@ -40,6 +42,12 @@ abstract class DataModule {
     abstract fun bindNetworkStatsRepository(
         networkStatsRepositoryImpl: NetworkStatsRepositoryImpl
     ): NetworkStatsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSpeedTestRepository(
+        speedTestRepositoryImpl: SpeedTestRepositoryImpl
+    ): SpeedTestRepository
 
     @Binds
     @Singleton

@@ -3,9 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-        No permissions are declared: the privileged telephony calls run in the Shizuku / root
-        process, not in this app.
+        The privileged telephony calls run in the Shizuku / root process, not in this app.
+        These permissions are only for the speed test, which downloads a test file over the
+        cellular network (even when Wi-Fi is the default) so modes can be compared.
     -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
 
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 

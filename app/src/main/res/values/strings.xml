@@ -23,6 +23,11 @@
     <string name="upload">Upload</string>
     <string name="signal_strength">Signal</string>
     <string name="signal_dbm">%1$d dBm</string>
+    <string name="run_speed_test">Run Speed Test</string>
+    <string name="speed_test_running">Testing…</string>
+    <string name="speed_test_results">Last speed test per mode</string>
+    <string name="speed_test_note">Downloads up to 90 MB over mobile data, even when connected to Wi-Fi.</string>
+    <string name="error_speed_test_failed">Speed test failed. Try again.</string>
     <string name="qs_tile_title">Quick Settings Tile</string>
     <string name="qs_tile_hint">Add the \"Network Switch\" tile to your Quick Settings panel for instant network switching from anywhere on your device.</string>
 

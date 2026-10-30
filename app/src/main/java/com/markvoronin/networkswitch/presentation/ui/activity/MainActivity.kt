@@ -89,6 +89,14 @@ private fun MainScreen(
         }
     }
 
+    if (viewModel.speedTestFailed) {
+        val message = stringResource(R.string.error_speed_test_failed)
+        LaunchedEffect(Unit) {
+            snackbarHostState.showSnackbar(message)
+            viewModel.dismissSpeedTestFailure()
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -149,7 +157,13 @@ private fun MainScreen(
                 )
             }
             
-            NetworkStatsCard(stats = viewModel.networkStats)
+            NetworkStatsCard(
+                stats = viewModel.networkStats,
+                speedTestResults = viewModel.speedTestResults,
+                isSpeedTestRunning = viewModel.isSpeedTestRunning,
+                canRunSpeedTest = viewModel.currentNetworkMode != null,
+                onRunSpeedTestClick = { viewModel.runSpeedTest() }
+            )
 
             // Quick Settings Tip Card
             QuickSettingsHintCard()

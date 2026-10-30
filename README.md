@@ -24,7 +24,7 @@ Network Switch provides granular control over device cellular network radio mode
 - **Speed & Signal Optimization**: Force high-performance modes (e.g., 5G/NR or 4G/LTE) in areas with poor auto-selection logic.
 - **Battery Preservation**: Drop down to power-efficient network modes when high-speed data is not needed.
 - **Coverage & Roaming**: Force specific radio bands when traveling internationally or using specialized carrier configurations.
-- **Privacy First**: No internet permissions required—all operations run locally on device.
+- **Privacy First**: Network switching runs locally on device. The internet permission is used only by the optional speed test, which downloads a test file from Cloudflare when you tap the button.
 
 ## Features
 

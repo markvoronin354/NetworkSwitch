@@ -93,6 +93,16 @@ interface PreferencesRepository {
      * Observe widget customization configuration changes
      */
     fun observeWidgetCustomizationConfig(): Flow<WidgetCustomizationConfig>
+
+    /**
+     * Observe the last speed test result (bits per second) for each network mode that has one
+     */
+    fun observeSpeedTestResults(): Flow<Map<NetworkMode, Long>>
+
+    /**
+     * Save the latest speed test result (bits per second) for a network mode
+     */
+    suspend fun setSpeedTestResult(mode: NetworkMode, bitsPerSecond: Long)
 }
 
 /**
@@ -104,6 +114,17 @@ interface NetworkStatsRepository {
      * polling and signal listener only run while the flow is being collected.
      */
     fun observeNetworkStats(): Flow<NetworkStats>
+}
+
+/**
+ * Repository interface for the cellular speed test
+ */
+interface SpeedTestRepository {
+    /**
+     * Download a test file over the cellular network and return the average speed in bits per
+     * second. Fails if there is no cellular connection or the download breaks off.
+     */
+    suspend fun runDownloadTest(): Result<Long>
 }
 
 /**
