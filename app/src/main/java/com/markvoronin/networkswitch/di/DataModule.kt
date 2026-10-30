@@ -5,8 +5,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.markvoronin.networkswitch.data.repository.NetworkControlRepositoryImpl
+import com.markvoronin.networkswitch.data.repository.NetworkStatsRepositoryImpl
 import com.markvoronin.networkswitch.data.repository.PreferencesRepositoryImpl
 import com.markvoronin.networkswitch.domain.repository.NetworkControlRepository
+import com.markvoronin.networkswitch.domain.repository.NetworkStatsRepository
 import com.markvoronin.networkswitch.domain.repository.PreferencesRepository
 import com.markvoronin.networkswitch.domain.repository.SurfaceRefresher
 import com.markvoronin.networkswitch.service.AndroidSurfaceRefresher
@@ -33,6 +35,12 @@ abstract class DataModule {
         networkControlRepositoryImpl: NetworkControlRepositoryImpl
     ): NetworkControlRepository
     
+    @Binds
+    @Singleton
+    abstract fun bindNetworkStatsRepository(
+        networkStatsRepositoryImpl: NetworkStatsRepositoryImpl
+    ): NetworkStatsRepository
+
     @Binds
     @Singleton
     abstract fun bindPreferencesRepository(

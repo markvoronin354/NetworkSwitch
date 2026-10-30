@@ -3,6 +3,7 @@ package com.markvoronin.networkswitch.domain.repository
 import com.markvoronin.networkswitch.domain.model.CompatibilityState
 import com.markvoronin.networkswitch.domain.model.ControlMethod
 import com.markvoronin.networkswitch.domain.model.NetworkMode
+import com.markvoronin.networkswitch.domain.model.NetworkStats
 import com.markvoronin.networkswitch.domain.model.ToggleModeConfig
 import com.markvoronin.networkswitch.domain.model.WidgetCustomizationConfig
 import kotlinx.coroutines.flow.Flow
@@ -92,6 +93,17 @@ interface PreferencesRepository {
      * Observe widget customization configuration changes
      */
     fun observeWidgetCustomizationConfig(): Flow<WidgetCustomizationConfig>
+}
+
+/**
+ * Repository interface for live network statistics
+ */
+interface NetworkStatsRepository {
+    /**
+     * Observe network stats, updated about once per second. The underlying
+     * polling and signal listener only run while the flow is being collected.
+     */
+    fun observeNetworkStats(): Flow<NetworkStats>
 }
 
 /**

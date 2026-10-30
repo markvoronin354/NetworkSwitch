@@ -19,15 +19,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.markvoronin.networkswitch.BuildConfig
 import com.markvoronin.networkswitch.R
 import com.markvoronin.networkswitch.domain.model.CompatibilityState
 import com.markvoronin.networkswitch.presentation.theme.NetworkSwitchTheme
 import com.markvoronin.networkswitch.presentation.ui.composable.CompatibilityCard
+import com.markvoronin.networkswitch.presentation.ui.composable.NetworkStatsCard
 import com.markvoronin.networkswitch.presentation.ui.composable.NetworkToggleCard
 import com.markvoronin.networkswitch.presentation.ui.composable.QuickSettingsHintCard
 import com.markvoronin.networkswitch.presentation.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -37,6 +42,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Poll speed and listen for signal changes only while the screen is visible
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.observeNetworkStats()
+            }
+        }
         
         setContent {
             NetworkSwitchTheme {
@@ -137,6 +149,8 @@ private fun MainScreen(
                 )
             }
             
+            NetworkStatsCard(stats = viewModel.networkStats)
+
             // Quick Settings Tip Card
             QuickSettingsHintCard()
 

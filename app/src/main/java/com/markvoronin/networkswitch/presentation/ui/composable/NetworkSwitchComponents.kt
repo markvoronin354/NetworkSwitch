@@ -27,7 +27,9 @@ import com.markvoronin.networkswitch.R
 import com.markvoronin.networkswitch.domain.model.CompatibilityState
 import com.markvoronin.networkswitch.domain.model.ControlMethod
 import com.markvoronin.networkswitch.domain.model.NetworkMode
+import com.markvoronin.networkswitch.domain.model.NetworkStats
 import com.markvoronin.networkswitch.presentation.ui.components.CardSection
+import com.markvoronin.networkswitch.util.Utils
 
 private fun ControlMethod.displayName() = if (this == ControlMethod.SHIZUKU) "Shizuku" else "Root"
 
@@ -323,6 +325,68 @@ fun NetworkToggleCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun NetworkStatsCard(
+    stats: NetworkStats,
+    modifier: Modifier = Modifier
+) {
+    CardSection(
+        title = stringResource(R.string.network_performance),
+        subtitle = stringResource(R.string.network_performance_subtitle),
+        modifier = modifier
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatRow(
+                    label = stringResource(R.string.download),
+                    value = Utils.formatSpeed(stats.downloadBps)
+                )
+                StatRow(
+                    label = stringResource(R.string.upload),
+                    value = Utils.formatSpeed(stats.uploadBps)
+                )
+                StatRow(
+                    label = stringResource(R.string.signal_strength),
+                    value = stats.signalDbm?.let { stringResource(R.string.signal_dbm, it) }
+                        ?: stringResource(R.string.unavailable)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

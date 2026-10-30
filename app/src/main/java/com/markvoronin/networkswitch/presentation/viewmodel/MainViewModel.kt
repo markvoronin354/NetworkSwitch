@@ -8,8 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.markvoronin.networkswitch.domain.model.CompatibilityState
 import com.markvoronin.networkswitch.domain.model.ControlMethod
 import com.markvoronin.networkswitch.domain.model.NetworkMode
+import com.markvoronin.networkswitch.domain.model.NetworkStats
 import com.markvoronin.networkswitch.domain.model.ToggleModeConfig
 import com.markvoronin.networkswitch.domain.repository.NetworkControlRepository
+import com.markvoronin.networkswitch.domain.repository.NetworkStatsRepository
 import com.markvoronin.networkswitch.domain.repository.PreferencesRepository
 import com.markvoronin.networkswitch.domain.usecase.CheckCompatibilityUseCase
 import com.markvoronin.networkswitch.domain.usecase.GetCurrentNetworkModeUseCase
@@ -30,7 +32,8 @@ class MainViewModel @Inject constructor(
     private val toggleNetworkModeUseCase: ToggleNetworkModeUseCase,
     private val updateControlMethodUseCase: UpdateControlMethodUseCase,
     private val preferencesRepository: PreferencesRepository,
-    private val networkControlRepository: NetworkControlRepository
+    private val networkControlRepository: NetworkControlRepository,
+    private val networkStatsRepository: NetworkStatsRepository
 ) : ViewModel() {
 
     // Current control method selection
@@ -53,6 +56,10 @@ class MainViewModel @Inject constructor(
 
     // Set when the last switch attempt failed, until the UI acknowledges it
     var switchFailed by mutableStateOf(false)
+        private set
+
+    // Latest network stats; only updated while observeNetworkStats() is running
+    var networkStats by mutableStateOf(NetworkStats())
         private set
 
     private var compatibilityJob: Job? = null
@@ -163,6 +170,14 @@ class MainViewModel @Inject constructor(
                 isLoading = false
             }
         }
+    }
+
+    /**
+     * Collect live network stats until cancelled. Call from a started-lifecycle scope so
+     * polling and the signal listener stop when the screen is not visible.
+     */
+    suspend fun observeNetworkStats() {
+        networkStatsRepository.observeNetworkStats().collect { networkStats = it }
     }
 
     fun dismissSwitchFailure() {

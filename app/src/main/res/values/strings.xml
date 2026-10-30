@@ -17,6 +17,12 @@
     <string name="switch_to">Switch to %1$s</string>
     <string name="switching">Switching…</string>
     <string name="error_switch_failed">Couldn\'t switch the network mode. Check your control method in Settings.</string>
+    <string name="network_performance">Network Performance</string>
+    <string name="network_performance_subtitle">Live speed and signal strength</string>
+    <string name="download">Download</string>
+    <string name="upload">Upload</string>
+    <string name="signal_strength">Signal</string>
+    <string name="signal_dbm">%1$d dBm</string>
     <string name="qs_tile_title">Quick Settings Tile</string>
     <string name="qs_tile_hint">Add the \"Network Switch\" tile to your Quick Settings panel for instant network switching from anywhere on your device.</string>
 
