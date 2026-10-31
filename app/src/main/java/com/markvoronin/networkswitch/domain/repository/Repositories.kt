@@ -30,6 +30,12 @@ interface NetworkControlRepository {
     suspend fun setNetworkMode(subId: Int, mode: NetworkMode): Result<Unit>
     
     /**
+     * Briefly drop and restore Wi-Fi and mobile data, and restart the modem, to fix a stuck connection.
+     * Fails if the change could not be applied.
+     */
+    suspend fun reconnectNetwork(): Result<Unit>
+
+    /**
      * Reset connections - useful when switching control methods
      */
     suspend fun resetConnections()

@@ -68,6 +68,28 @@ class NetworkControlRepositoryImplTest {
     }
 
     @Test
+    fun `reconnectNetwork uses the selected control method`() = runTest {
+        coEvery { preferencesRepository.getControlMethod() } returns ControlMethod.ROOT
+
+        val result = repository.reconnectNetwork()
+
+        assertTrue(result.isSuccess)
+        coVerify { rootDataSource.reconnectNetwork() }
+        coVerify(exactly = 0) { shizukuDataSource.reconnectNetwork() }
+    }
+
+    @Test
+    fun `reconnectNetwork returns failure when the data source throws`() = runTest {
+        val error = IllegalStateException("The device could not reconnect the network")
+        coEvery { shizukuDataSource.reconnectNetwork() } throws error
+
+        val result = repository.reconnectNetwork()
+
+        assertTrue(result.isFailure)
+        assertEquals(error, result.exceptionOrNull())
+    }
+
+    @Test
     fun `getCurrentNetworkMode returns the detected mode`() = runTest {
         coEvery { shizukuDataSource.getCurrentNetworkMode(subId) } returns NetworkMode.NR_LTE
 

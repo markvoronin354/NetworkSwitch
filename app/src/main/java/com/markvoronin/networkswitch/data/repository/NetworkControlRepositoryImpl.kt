@@ -59,6 +59,19 @@ class NetworkControlRepositoryImpl @Inject constructor(
             }
         }
 
+    override suspend fun reconnectNetwork(): Result<Unit> =
+        withContext(ioDispatcher) {
+            try {
+                val method = preferencesRepository.getControlMethod()
+                getDataSource(method).reconnectNetwork()
+                Result.success(Unit)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
     /**
      * Reset connections for both data sources - useful when switching control methods
      */

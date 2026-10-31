@@ -60,6 +60,14 @@ class RootNetworkControlDataSource @Inject constructor(
         }
     }
 
+    override suspend fun reconnectNetwork() {
+        val controller = getNetworkController()
+            ?: throw IllegalStateException("Root service is not available")
+        if (!controller.reconnectNetwork()) {
+            throw IllegalStateException("The device could not reconnect the network")
+        }
+    }
+
     override fun isConnected(): Boolean = networkController?.asBinder()?.isBinderAlive == true
 
     override fun resetConnection() {

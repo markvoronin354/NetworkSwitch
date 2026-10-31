@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
@@ -89,6 +90,39 @@ private fun MainScreen(
         }
     }
 
+    var showReconnectDialog by remember { mutableStateOf(false) }
+
+    if (showReconnectDialog) {
+        AlertDialog(
+            onDismissRequest = { showReconnectDialog = false },
+            title = { Text(stringResource(R.string.reconnect_network)) },
+            text = { Text(stringResource(R.string.reconnect_network_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showReconnectDialog = false
+                        viewModel.reconnectNetwork()
+                    }
+                ) {
+                    Text(stringResource(R.string.reconnect))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReconnectDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (viewModel.reconnectFailed) {
+        val message = stringResource(R.string.error_reconnect_failed)
+        LaunchedEffect(Unit) {
+            snackbarHostState.showSnackbar(message)
+            viewModel.dismissReconnectFailure()
+        }
+    }
+
     if (viewModel.speedTestFailed) {
         val message = stringResource(R.string.error_speed_test_failed)
         LaunchedEffect(Unit) {
@@ -107,6 +141,25 @@ private fun MainScreen(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = { showReconnectDialog = true },
+                        enabled = compatibilityState is CompatibilityState.Compatible &&
+                            !viewModel.isReconnecting
+                    ) {
+                        if (viewModel.isReconnecting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.RestartAlt,
+                                contentDescription = stringResource(R.string.reconnect_network)
+                            )
+                        }
+                    }
                 },
                 actions = {
                     IconButton(onClick = onNetworkModeConfigClick) {

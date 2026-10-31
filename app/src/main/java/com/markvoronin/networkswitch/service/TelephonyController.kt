@@ -3,6 +3,7 @@ package com.markvoronin.networkswitch.service
 import android.content.Context
 import android.os.IBinder
 import android.os.ServiceManager
+import android.telephony.SubscriptionManager
 import android.util.Log
 import com.markvoronin.networkswitch.domain.model.NetworkMode
 import com.markvoronin.networkswitch.domain.model.RadioTechnology
@@ -136,6 +137,30 @@ internal object TelephonyController {
             Log.e(TAG, "Error in setNetworkMode", e)
         }
         return false
+    }
+
+    /**
+     * Asks the framework to restart the modem of the default data SIM. Some devices only allow
+     * this for root, so a `false` result is expected and not an error.
+     */
+    fun restartModem(): Boolean {
+        try {
+            val telephony = getITelephony() ?: return false
+            val method = telephony.javaClass.methods.named("rebootModem")
+                .firstOrNull { it.parameterCount == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType }
+            if (method == null) {
+                Log.w(TAG, "rebootModem is not available")
+                return false
+            }
+            val slot = SubscriptionManager.getSlotIndex(SubscriptionManager.getDefaultDataSubscriptionId())
+                .coerceAtLeast(0)
+            val result = method.invoke(telephony, slot)
+            Log.i(TAG, "rebootModem(slot=$slot) returned $result")
+            return result != false
+        } catch (e: Throwable) {
+            Log.w(TAG, "rebootModem failed", e)
+            return false
+        }
     }
 
     /** Invokes [method]; a thrown exception or an explicit `false` result is a failure. */

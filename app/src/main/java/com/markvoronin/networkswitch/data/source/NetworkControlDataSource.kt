@@ -14,6 +14,9 @@ interface NetworkControlDataSource {
     /** Applies [mode]; throws if the change could not be applied. */
     suspend fun setNetworkMode(subId: Int, mode: NetworkMode)
 
+    /** Briefly drops and restores Wi-Fi and mobile data and restarts the modem; throws if that failed. */
+    suspend fun reconnectNetwork()
+
     fun isConnected(): Boolean
     fun resetConnection()
     fun requestPermission() {}

@@ -60,6 +60,13 @@ class MainViewModel @Inject constructor(
     var switchFailed by mutableStateOf(false)
         private set
 
+    var isReconnecting by mutableStateOf(false)
+        private set
+
+    // Set when the last reconnect attempt failed, until the UI acknowledges it
+    var reconnectFailed by mutableStateOf(false)
+        private set
+
     // Latest network stats; only updated while observeNetworkStats() is running
     var networkStats by mutableStateOf(NetworkStats())
         private set
@@ -176,7 +183,7 @@ class MainViewModel @Inject constructor(
      * Toggle network mode using configurable modes
      */
     fun toggleNetworkMode() {
-        if (isLoading) return
+        if (isLoading || isReconnecting) return
 
         // A result measured across a mode switch would be filed under the wrong mode
         speedTestJob?.cancel()
@@ -195,6 +202,29 @@ class MainViewModel @Inject constructor(
                 isLoading = false
             }
         }
+    }
+
+    /**
+     * Briefly drop and restore Wi-Fi and mobile data to fix a stuck connection
+     */
+    fun reconnectNetwork() {
+        if (isReconnecting || isLoading) return
+
+        // A speed test can't survive the connection dropping
+        speedTestJob?.cancel()
+        isReconnecting = true
+        viewModelScope.launch {
+            try {
+                networkControlRepository.reconnectNetwork()
+                    .onFailure { reconnectFailed = true }
+            } finally {
+                isReconnecting = false
+            }
+        }
+    }
+
+    fun dismissReconnectFailure() {
+        reconnectFailed = false
     }
 
     /**

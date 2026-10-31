@@ -143,6 +143,16 @@ class ShizukuNetworkControlDataSource @Inject constructor(
         }
     }
 
+    override suspend fun reconnectNetwork() {
+        if (!ensureServiceBinding()) {
+            throw SecurityException("Shizuku permission not granted or service binding failed")
+        }
+        val service = userService ?: throw IllegalStateException("Shizuku service is not available")
+        if (!service.reconnectNetwork()) {
+            throw IllegalStateException("The device could not reconnect the network")
+        }
+    }
+
     override fun isConnected(): Boolean = _isConnected.value
 
     override fun resetConnection() {

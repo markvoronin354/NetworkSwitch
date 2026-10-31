@@ -21,5 +21,7 @@ class RootNetworkControllerService : RootService() {
 
         override fun setNetworkMode(subId: Int, networkMode: Int): Boolean =
             TelephonyController.setNetworkMode(subId, networkMode)
+
+        override fun reconnectNetwork(): Boolean = NetworkReconnector.reconnect()
     }
 }

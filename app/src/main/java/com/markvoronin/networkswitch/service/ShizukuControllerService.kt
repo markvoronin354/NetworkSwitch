@@ -25,6 +25,8 @@ class ShizukuControllerService() : IShizukuController.Stub() {
     override fun setNetworkMode(subId: Int, networkMode: Int): Boolean =
         TelephonyController.setNetworkMode(subId, networkMode)
 
+    override fun reconnectNetwork(): Boolean = NetworkReconnector.reconnect()
+
     override fun destroy() {
         Log.d("NetworkSwitch", "ShizukuControllerService: destroy")
     }

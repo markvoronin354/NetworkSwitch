@@ -28,6 +28,11 @@
     <string name="speed_test_results">Last speed test per mode</string>
     <string name="speed_test_note">Downloads up to 90 MB over mobile data, even when connected to Wi-Fi.</string>
     <string name="error_speed_test_failed">Speed test failed. Try again.</string>
+    <string name="reconnect_network">Reconnect network</string>
+    <string name="reconnect_network_message">Wi-Fi and mobile data will be turned off and the modem restarted. You will be offline for several seconds and any call will end. Saved networks and settings are not changed.</string>
+    <string name="reconnect">Reconnect</string>
+    <string name="cancel">Cancel</string>
+    <string name="error_reconnect_failed">Couldn\'t reconnect the network. Check your control method in Settings.</string>
     <string name="qs_tile_title">Quick Settings Tile</string>
     <string name="qs_tile_hint">Add the \"Network Switch\" tile to your Quick Settings panel for instant network switching from anywhere on your device.</string>
 

@@ -88,6 +88,33 @@ class MainViewModelTest {
     }
 
     @Test
+    fun `reconnectNetwork reconnects and clears the progress state`() = runTest {
+        coEvery { networkControlRepository.reconnectNetwork() } returns Result.success(Unit)
+        val viewModel = createViewModel()
+
+        viewModel.reconnectNetwork()
+
+        coVerify { networkControlRepository.reconnectNetwork() }
+        assertFalse(viewModel.isReconnecting)
+        assertFalse(viewModel.reconnectFailed)
+    }
+
+    @Test
+    fun `reconnectNetwork flags a failure`() = runTest {
+        coEvery { networkControlRepository.reconnectNetwork() } returns
+            Result.failure(IllegalStateException("nope"))
+        val viewModel = createViewModel()
+
+        viewModel.reconnectNetwork()
+
+        assertTrue(viewModel.reconnectFailed)
+        assertFalse(viewModel.isReconnecting)
+
+        viewModel.dismissReconnectFailure()
+        assertFalse(viewModel.reconnectFailed)
+    }
+
+    @Test
     fun `runSpeedTest saves the result under the current mode`() = runTest {
         coEvery { speedTestRepository.runDownloadTest() } returns Result.success(50_000_000L)
         coEvery { preferencesRepository.setSpeedTestResult(any(), any()) } returns Unit
