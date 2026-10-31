@@ -96,6 +96,10 @@
     <string name="widget_switching">Switching…</string>
 
     <!-- Quick Settings tile -->
+    <string name="tile_reconnect_label">Reconnect</string>
+    <string name="tile_reconnect_subtitle">Tap to reconnect</string>
+    <string name="tile_reconnecting">Reconnecting…</string>
+    <string name="toast_reconnecting">Reconnecting network…</string>
     <string name="toast_switching">Switching network…</string>
     <string name="tile_processing">Processing…</string>
     <string name="tile_tap_to_load">Tap to load</string>
