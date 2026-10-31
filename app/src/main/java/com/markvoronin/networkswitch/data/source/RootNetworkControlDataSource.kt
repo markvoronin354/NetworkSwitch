@@ -4,7 +4,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.util.Log
 import com.markvoronin.networkswitch.IRootController
 import com.markvoronin.networkswitch.domain.model.CompatibilityState
 import com.markvoronin.networkswitch.domain.model.ControlMethod
@@ -13,9 +16,11 @@ import com.markvoronin.networkswitch.service.RootNetworkControllerService
 import com.markvoronin.networkswitch.util.Utils
 import com.topjohnwu.superuser.ipc.RootService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,6 +53,7 @@ class RootNetworkControlDataSource @Inject constructor(
             val modeValue = getNetworkController()?.getCurrentNetworkMode(subId) ?: return null
             NetworkMode.fromValue(modeValue)
         } catch (e: Exception) {
+            Log.e(TAG, "Root: failed to read the network mode", e)
             null
         }
     }
@@ -75,10 +81,13 @@ class RootNetworkControlDataSource @Inject constructor(
         activeConnection = null
         networkController = null
         if (connection != null) {
-            try {
-                RootService.unbind(connection)
-            } catch (_: Exception) {
-                // Already unbound
+            // libsu only allows unbinding on the main thread
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    RootService.unbind(connection)
+                } catch (_: Exception) {
+                    // Already unbound
+                }
             }
         }
     }
@@ -91,36 +100,48 @@ class RootNetworkControlDataSource @Inject constructor(
             connectedController()?.let { return@withLock it }
             resetConnection()
 
+            // libsu only allows binding on the main thread
             withTimeoutOrNull(BIND_TIMEOUT_MS) {
-                suspendCancellableCoroutine<IRootController?> { continuation ->
-                    val connection = object : ServiceConnection {
-                        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                            val controller = IRootController.Stub.asInterface(service)
-                            networkController = controller
-                            if (continuation.isActive) continuation.resume(controller)
-                        }
-
-                        override fun onServiceDisconnected(name: ComponentName?) {
-                            networkController = null
-                        }
-                    }
-                    activeConnection = connection
-                    continuation.invokeOnCancellation { resetConnection() }
-
-                    try {
-                        RootService.bind(Intent(context, RootNetworkControllerService::class.java), connection)
-                    } catch (e: Exception) {
-                        if (continuation.isActive) continuation.resume(null)
-                    }
+                withContext(Dispatchers.Main) { bindRootService() }
+            }.also {
+                if (it == null) {
+                    Log.e(TAG, "Root: no root service connection (timed out or failed to bind)")
+                    resetConnection()
                 }
-            }.also { if (it == null) resetConnection() }
+            }
         }
     }
+
+    /** Must run on the main thread. */
+    private suspend fun bindRootService(): IRootController? =
+        suspendCancellableCoroutine { continuation ->
+            val connection = object : ServiceConnection {
+                override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                    val controller = IRootController.Stub.asInterface(service)
+                    networkController = controller
+                    if (continuation.isActive) continuation.resume(controller)
+                }
+
+                override fun onServiceDisconnected(name: ComponentName?) {
+                    networkController = null
+                }
+            }
+            activeConnection = connection
+            continuation.invokeOnCancellation { resetConnection() }
+
+            try {
+                RootService.bind(Intent(context, RootNetworkControllerService::class.java), connection)
+            } catch (e: Exception) {
+                Log.e(TAG, "Root: failed to bind the root service", e)
+                if (continuation.isActive) continuation.resume(null)
+            }
+        }
 
     private fun connectedController(): IRootController? =
         networkController?.takeIf { it.asBinder().isBinderAlive }
 
     private companion object {
+        const val TAG = "NetworkSwitch"
         const val BIND_TIMEOUT_MS = 15_000L
     }
 }
