@@ -33,6 +33,7 @@ Network Switch provides granular control over device cellular network radio mode
 - **Home Screen Widget**: A resizable tile-style widget that shows the active and next mode, with a live-preview customizer (match system theme or pick a custom color, adjustable opacity) in Settings.
 - **Live Network Performance**: Shows real-time download/upload speed and cell signal strength (dBm) on the main screen while the app is open.
 - **Cellular Speed Test**: Download a test file over mobile data (up to 90 MB, even when connected to Wi-Fi) and compare the saved result for each network mode.
+- **Reconnect Network**: One tap (top-left of the main screen) turns Wi-Fi and mobile data off and on and restarts the modem to fix a stuck connection. Saved networks and settings are not changed.
 - **Configurable Toggle Pairs**: Select any two network modes (Mode A / Mode B) for instant 1-tap toggling.
 - **Dual System Operations**:
   - **Shizuku Method**: Non-rooted system access via Shizuku API.
