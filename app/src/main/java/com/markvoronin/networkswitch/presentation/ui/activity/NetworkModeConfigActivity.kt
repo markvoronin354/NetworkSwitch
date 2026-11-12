@@ -7,12 +7,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,12 +21,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.markvoronin.networkswitch.R
 import com.markvoronin.networkswitch.presentation.theme.NetworkSwitchTheme
+import com.markvoronin.networkswitch.presentation.ui.components.SectionHeader
 import com.markvoronin.networkswitch.presentation.ui.composable.NetworkModeSelector
 import com.markvoronin.networkswitch.presentation.viewmodel.NetworkModeConfigViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -51,7 +53,7 @@ class NetworkModeConfigActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun NetworkModeConfigScreen(
     viewModel: NetworkModeConfigViewModel,
@@ -80,13 +82,16 @@ private fun NetworkModeConfigScreen(
         }
     }
 
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val buttonHeight = ButtonDefaults.MediumContainerHeight
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            MediumFlexibleTopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.network_mode_config),
-                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -98,10 +103,7 @@ private fun NetworkModeConfigScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                )
+                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->
@@ -110,98 +112,47 @@ private fun NetworkModeConfigScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Description Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                ),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.network_mode_config),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    Spacer(modifier = Modifier.height(6.dp))
-                    
-                    Text(
-                        text = stringResource(R.string.network_mode_config_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            
-            // Mode A Selection
-            NetworkModeSelector(
-                label = stringResource(R.string.mode_a_label),
-                selectedMode = currentConfig.modeA,
-                onModeSelected = { mode ->
-                    viewModel.updateModeA(mode)
-                }
+            SectionHeader(
+                title = stringResource(R.string.network_mode),
+                description = stringResource(R.string.network_mode_config_desc)
             )
-            
-            // Mode B Selection
-            NetworkModeSelector(
-                label = stringResource(R.string.mode_b_label),
-                selectedMode = currentConfig.modeB,
-                onModeSelected = { mode ->
-                    viewModel.updateModeB(mode)
-                }
-            )
-            
 
-            // Save Button
-            Button(
-                onClick = { viewModel.saveConfiguration() },
-                enabled = !isLoading && currentConfig.modeA != currentConfig.modeB,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = 52.dp)
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.5.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
-                Text(
-                    text = stringResource(R.string.save_configuration),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+            Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+                // Mode A Selection
+                NetworkModeSelector(
+                    label = stringResource(R.string.mode_a_label),
+                    selectedMode = currentConfig.modeA,
+                    onModeSelected = { mode ->
+                        viewModel.updateModeA(mode)
+                    },
+                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = 2)
+                )
+
+                // Mode B Selection
+                NetworkModeSelector(
+                    label = stringResource(R.string.mode_b_label),
+                    selectedMode = currentConfig.modeB,
+                    onModeSelected = { mode ->
+                        viewModel.updateModeB(mode)
+                    },
+                    shapes = ListItemDefaults.segmentedShapes(index = 1, count = 2)
                 )
             }
-            
+
             // Warning if both modes are the same
             AnimatedVisibility(
                 visible = currentConfig.modeA == currentConfig.modeB,
-                enter = fadeIn(),
-                exit = fadeOut()
+                enter = expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + fadeIn(),
+                exit = shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + fadeOut()
             ) {
-                Card(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
                 ) {
                     Row(
                         modifier = Modifier
@@ -212,18 +163,40 @@ private fun NetworkModeConfigScreen(
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = stringResource(R.string.warning),
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = stringResource(R.string.modes_must_differ),
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
+            }
+
+            // Save Button
+            Button(
+                onClick = { viewModel.saveConfiguration() },
+                shapes = ButtonDefaults.shapes(),
+                enabled = !isLoading && currentConfig.modeA != currentConfig.modeB,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .heightIn(min = buttonHeight),
+                contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight)
+            ) {
+                if (isLoading) {
+                    LoadingIndicator(
+                        modifier = Modifier.size(ButtonDefaults.iconSizeFor(buttonHeight)),
+                        color = LocalContentColor.current
+                    )
+                    Spacer(modifier = Modifier.width(ButtonDefaults.iconSpacingFor(buttonHeight)))
+                }
+                Text(
+                    text = stringResource(R.string.save_configuration),
+                    style = ButtonDefaults.textStyleFor(buttonHeight)
+                )
             }
         }
     }

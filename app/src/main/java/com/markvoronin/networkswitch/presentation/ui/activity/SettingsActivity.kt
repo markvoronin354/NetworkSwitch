@@ -6,23 +6,22 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
@@ -32,6 +31,9 @@ import com.markvoronin.networkswitch.R
 import com.markvoronin.networkswitch.domain.model.CompatibilityState
 import com.markvoronin.networkswitch.domain.model.ControlMethod
 import com.markvoronin.networkswitch.presentation.theme.NetworkSwitchTheme
+import com.markvoronin.networkswitch.presentation.ui.components.SectionHeader
+import com.markvoronin.networkswitch.presentation.ui.components.ShapeBadge
+import com.markvoronin.networkswitch.presentation.ui.components.segmentedItemColors
 import com.markvoronin.networkswitch.presentation.ui.composable.WidgetCustomizationCard
 import com.markvoronin.networkswitch.presentation.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -61,7 +63,7 @@ class SettingsActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -69,14 +71,15 @@ private fun SettingsScreen(
 ) {
     val controlMethod by viewModel.controlMethod.collectAsState()
     val widgetCustomization by viewModel.widgetCustomization.collectAsState()
-    
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            MediumFlexibleTopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.settings),
-                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -88,10 +91,7 @@ private fun SettingsScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                )
+                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->
@@ -100,8 +100,8 @@ private fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Control Method Selection
             ControlMethodCard(
@@ -120,6 +120,8 @@ private fun SettingsScreen(
             
             // About Section
             AboutCard()
+
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
@@ -132,34 +134,11 @@ private fun ControlMethodCard(
     shizukuCompatibility: CompatibilityState,
     onRetryClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.control_method),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionHeader(
+            title = stringResource(R.string.control_method),
+            description = stringResource(R.string.control_method_desc),
+            action = {
                 IconButton(onClick = onRetryClick) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
@@ -168,27 +147,21 @@ private fun ControlMethodCard(
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = stringResource(R.string.control_method_desc),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
+        )
+
+        Column(
+            modifier = Modifier.selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+        ) {
             // Option 1: Root Method
             ControlMethodOption(
                 title = stringResource(R.string.method_root),
                 subtitle = stringResource(R.string.method_root_desc),
                 isSelected = selectedMethod == ControlMethod.ROOT,
                 compatibilityState = rootCompatibility,
+                shapes = ListItemDefaults.segmentedShapes(index = 0, count = 2),
                 onClick = { onMethodSelected(ControlMethod.ROOT) }
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             // Option 2: Shizuku Method
             ControlMethodOption(
@@ -196,204 +169,122 @@ private fun ControlMethodCard(
                 subtitle = stringResource(R.string.method_shizuku_desc),
                 isSelected = selectedMethod == ControlMethod.SHIZUKU,
                 compatibilityState = shizukuCompatibility,
+                shapes = ListItemDefaults.segmentedShapes(index = 1, count = 2),
                 onClick = { onMethodSelected(ControlMethod.SHIZUKU) }
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ControlMethodOption(
     title: String,
     subtitle: String,
     isSelected: Boolean,
     compatibilityState: CompatibilityState,
+    shapes: ListItemShapes,
     onClick: () -> Unit
 ) {
-    Surface(
+    SegmentedListItem(
+        selected = isSelected,
         onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(
-            width = if (isSelected) 2.dp else 1.dp,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-        ),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                selected = isSelected,
-                onClick = onClick
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(8.dp))
-
+        shapes = shapes,
+        colors = segmentedItemColors(),
+        leadingContent = { RadioButton(selected = isSelected, onClick = null) },
+        trailingContent = {
             // Status indicator
             when (compatibilityState) {
                 is CompatibilityState.Pending -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    LoadingIndicator(modifier = Modifier.size(24.dp))
                 }
                 is CompatibilityState.Compatible -> {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = stringResource(R.string.compatible),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 is CompatibilityState.PermissionDenied, is CompatibilityState.Incompatible -> {
                     Icon(
                         imageVector = Icons.Default.Error,
                         contentDescription = stringResource(R.string.incompatible_or_denied),
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(22.dp)
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
+            }
+        },
+        supportingContent = { Text(subtitle) },
+        content = { Text(text = title, fontWeight = FontWeight.SemiBold) }
+    )
+}
+
+private val licenses = listOf(
+    "Shizuku Service API" to "https://github.com/RikkaApps/Shizuku",
+    "libsu Framework" to "https://github.com/topjohnwu/libsu",
+    "Dagger Hilt" to "https://github.com/google/dagger",
+    "AndroidHiddenApiBypass" to "https://github.com/LSPosed/AndroidHiddenApiBypass",
+    "Android Jetpack & Compose" to "https://android.googlesource.com/platform/frameworks/support"
+)
+
+@Composable
+private fun AboutCard() {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionHeader(title = stringResource(R.string.about_title))
+
+        LinkItem(
+            title = stringResource(R.string.about_source_code),
+            subtitle = "https://github.com/markvoronin354/NetworkSwitch",
+            link = "https://github.com/markvoronin354/NetworkSwitch",
+            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+            icon = Icons.Default.Code
+        )
+
+        SectionHeader(title = stringResource(R.string.about_licenses))
+
+        Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+            licenses.forEachIndexed { index, (title, link) ->
+                LinkItem(
+                    title = title,
+                    subtitle = "Apache License 2.0",
+                    link = link,
+                    shapes = ListItemDefaults.segmentedShapes(index = index, count = licenses.size)
+                )
             }
         }
     }
 }
 
-@Composable
-private fun AboutCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.about_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            LinkItem(
-                title = stringResource(R.string.about_source_code),
-                subtitle = "https://github.com/markvoronin354/NetworkSwitch",
-                link = "https://github.com/markvoronin354/NetworkSwitch"
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-            )
-
-            Text(
-                text = stringResource(R.string.about_licenses),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Spacer(modifier = Modifier.height(6.dp))
-            
-            LinkItem(
-                title = "Shizuku Service API",
-                subtitle = "Apache License 2.0",
-                link = "https://github.com/RikkaApps/Shizuku"
-            )
-            
-            LinkItem(
-                title = "libsu Framework",
-                subtitle = "Apache License 2.0",
-                link = "https://github.com/topjohnwu/libsu"
-            )
-            
-            LinkItem(
-                title = "Dagger Hilt",
-                subtitle = "Apache License 2.0",
-                link = "https://github.com/google/dagger"
-            )
-
-            LinkItem(
-                title = "AndroidHiddenApiBypass",
-                subtitle = "Apache License 2.0",
-                link = "https://github.com/LSPosed/AndroidHiddenApiBypass"
-            )
-
-            LinkItem(
-                title = "Android Jetpack & Compose",
-                subtitle = "Apache License 2.0",
-                link = "https://android.googlesource.com/platform/frameworks/support"
-            )
-        }
-    }
-}
-
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LinkItem(
     title: String,
     subtitle: String,
-    link: String
+    link: String,
+    shapes: ListItemShapes,
+    icon: ImageVector? = null
 ) {
     val context = LocalContext.current
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .clickable {
-                context.startActivity(Intent(Intent.ACTION_VIEW, link.toUri()))
+
+    SegmentedListItem(
+        onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, link.toUri())) },
+        shapes = shapes,
+        colors = segmentedItemColors(),
+        leadingContent = icon?.let {
+            {
+                ShapeBadge(shape = MaterialShapes.Cookie9Sided.toShape()) {
+                    Icon(imageVector = it, contentDescription = null)
+                }
             }
-            .padding(vertical = 10.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
+        },
+        trailingContent = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = stringResource(R.string.open_link),
+                modifier = Modifier.size(20.dp)
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-            contentDescription = stringResource(R.string.open_link),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp)
-        )
-    }
+        },
+        supportingContent = { Text(subtitle) },
+        content = { Text(title) }
+    )
 }

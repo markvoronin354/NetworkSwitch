@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -72,7 +73,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun MainScreen(
     viewModel: MainViewModel,
@@ -95,6 +96,7 @@ private fun MainScreen(
     if (showReconnectDialog) {
         AlertDialog(
             onDismissRequest = { showReconnectDialog = false },
+            icon = { Icon(imageVector = Icons.Default.RestartAlt, contentDescription = null) },
             title = { Text(stringResource(R.string.reconnect_network)) },
             text = { Text(stringResource(R.string.reconnect_network_message)) },
             confirmButton = {
@@ -131,14 +133,16 @@ private fun MainScreen(
         }
     }
 
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            CenterAlignedTopAppBar(
+            MediumFlexibleTopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -149,10 +153,7 @@ private fun MainScreen(
                             !viewModel.isReconnecting
                     ) {
                         if (viewModel.isReconnecting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.5.dp
-                            )
+                            LoadingIndicator(modifier = Modifier.size(24.dp))
                         } else {
                             Icon(
                                 imageVector = Icons.Default.RestartAlt,
@@ -175,10 +176,7 @@ private fun MainScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                )
+                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->
@@ -187,8 +185,8 @@ private fun MainScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Compatibility Status Card
             CompatibilityCard(
@@ -228,7 +226,7 @@ private fun MainScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp, bottom = 12.dp),
+                    .padding(top = 12.dp, bottom = 12.dp),
                 textAlign = TextAlign.Center
             )
         }

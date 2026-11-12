@@ -2,7 +2,7 @@ package com.markvoronin.networkswitch.presentation.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -30,7 +30,14 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = SlateSurfaceVariantDark,
     onSurfaceVariant = SlateOnSurfaceVariantDark,
     outline = SlateOutlineDark,
-    outlineVariant = SlateOutlineVariantDark
+    outlineVariant = SlateOutlineVariantDark,
+    surfaceDim = SlateSurfaceDimDark,
+    surfaceBright = SlateSurfaceBrightDark,
+    surfaceContainerLowest = SlateSurfaceContainerLowestDark,
+    surfaceContainerLow = SlateSurfaceContainerLowDark,
+    surfaceContainer = SlateSurfaceContainerDark,
+    surfaceContainerHigh = SlateSurfaceContainerHighDark,
+    surfaceContainerHighest = SlateSurfaceContainerHighestDark
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -53,7 +60,14 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = SlateSurfaceVariantLight,
     onSurfaceVariant = SlateOnSurfaceVariantLight,
     outline = SlateOutlineLight,
-    outlineVariant = SlateOutlineVariantLight
+    outlineVariant = SlateOutlineVariantLight,
+    surfaceDim = SlateSurfaceDimLight,
+    surfaceBright = SlateSurfaceBrightLight,
+    surfaceContainerLowest = SlateSurfaceContainerLowestLight,
+    surfaceContainerLow = SlateSurfaceContainerLowLight,
+    surfaceContainer = SlateSurfaceContainerLight,
+    surfaceContainerHigh = SlateSurfaceContainerHighLight,
+    surfaceContainerHighest = SlateSurfaceContainerHighestLight
 )
 
 @Composable
@@ -71,7 +85,8 @@ fun NetworkSwitchTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
+    // Expressive theme: also applies the expressive (spring-based) motion scheme
+    MaterialExpressiveTheme(
         colorScheme = colorScheme,
         typography = Typography,
         content = content

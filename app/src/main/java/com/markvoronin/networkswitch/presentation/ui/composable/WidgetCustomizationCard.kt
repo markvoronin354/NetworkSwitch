@@ -2,11 +2,13 @@ package com.markvoronin.networkswitch.presentation.ui.composable
 
 import android.graphics.Color as AndroidColor
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +18,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,12 +41,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.markvoronin.networkswitch.R
 import com.markvoronin.networkswitch.domain.model.WidgetCustomizationConfig
+import com.markvoronin.networkswitch.presentation.ui.components.SectionHeader
+import com.markvoronin.networkswitch.presentation.ui.components.ShapeBadge
 import com.markvoronin.networkswitch.util.WidgetThemeHelper
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun WidgetCustomizationCard(
     config: WidgetCustomizationConfig,
@@ -54,146 +62,167 @@ fun WidgetCustomizationCard(
     var draftOpacity by remember(config.opacity) { mutableFloatStateOf(config.opacity) }
     val previewConfig = config.copy(customColorHex = draftColor, opacity = draftOpacity)
 
-    Card(
+    val colors = MaterialTheme.colorScheme
+    val motion = MaterialTheme.motionScheme
+    // Preview, system color toggle, custom color, opacity. The custom color item is always a
+    // middle item, so every item's shape stays the same when it is hidden.
+    val itemCount = 4
+
+    Column(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-        )
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            Column {
-                Text(
-                    text = stringResource(R.string.widget_customization),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = stringResource(R.string.widget_customization_desc),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        SectionHeader(
+            title = stringResource(R.string.widget_customization),
+            description = stringResource(R.string.widget_customization_desc)
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+            // Live Widget Preview
+            Surface(
+                shape = ListItemDefaults.segmentedShapes(index = 0, count = itemCount).shape,
+                color = colors.surfaceContainer
+            ) {
+                Box(modifier = Modifier.padding(12.dp)) {
+                    WidgetPreviewBox(config = previewConfig)
+                }
             }
 
-            // Live Widget Preview
-            WidgetPreviewBox(config = previewConfig)
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-            // System Color Toggle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
+            // System Color Toggle. The switch shows the state, so the item keeps its
+            // unselected look when checked.
+            val toggleShapes = ListItemDefaults.segmentedShapes(index = 1, count = itemCount)
+            SegmentedListItem(
+                checked = config.useSystemColor,
+                onCheckedChange = { useSystem ->
+                    onConfigChanged(config.copy(useSystemColor = useSystem))
+                },
+                shapes = toggleShapes.copy(selectedShape = toggleShapes.shape),
+                colors = ListItemDefaults.segmentedColors(
+                    containerColor = colors.surfaceContainer,
+                    selectedContainerColor = colors.surfaceContainer,
+                    selectedContentColor = colors.onSurface,
+                    selectedSupportingContentColor = colors.onSurfaceVariant
+                ),
+                leadingContent = {
+                    ShapeBadge(shape = MaterialShapes.Cookie9Sided.toShape()) {
+                        Icon(imageVector = Icons.Default.Contrast, contentDescription = null)
+                    }
+                },
+                trailingContent = {
+                    Switch(
+                        checked = config.useSystemColor,
+                        onCheckedChange = null,
+                        thumbContent = if (config.useSystemColor) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        } else {
+                            null
+                        }
+                    )
+                },
+                supportingContent = { Text(stringResource(R.string.match_system_theme_desc)) },
+                content = {
                     Text(
                         text = stringResource(R.string.match_system_theme),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = stringResource(R.string.match_system_theme_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
-
-                Switch(
-                    checked = config.useSystemColor,
-                    onCheckedChange = { useSystem ->
-                        onConfigChanged(config.copy(useSystemColor = useSystem))
-                    }
-                )
-            }
+            )
 
             // Custom Color Controls
             AnimatedVisibility(
                 visible = !config.useSystemColor,
-                enter = fadeIn(),
-                exit = fadeOut()
+                enter = expandVertically(motion.defaultSpatialSpec()) + fadeIn(motion.defaultEffectsSpec()),
+                exit = shrinkVertically(motion.defaultSpatialSpec()) + fadeOut(motion.defaultEffectsSpec())
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                Surface(
+                    shape = ListItemDefaults.segmentedShapes(index = 2, count = itemCount).shape,
+                    color = colors.surfaceContainer
                 ) {
-                    Text(
-                        text = stringResource(R.string.custom_widget_color),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    // Color Wheel
-                    ColorWheelPicker(
-                        currentColor = Color(draftColor),
-                        onColorSelected = { selectedColor -> draftColor = selectedColor.toArgb() },
-                        onColorSelectionFinished = {
-                            onConfigChanged(config.copy(customColorHex = draftColor))
-                        }
-                    )
-
-                    // Color Palette Presets
-                    ColorPresets(
-                        selectedColorHex = draftColor,
-                        onColorSelected = { hex ->
-                            draftColor = hex
-                            onConfigChanged(config.copy(customColorHex = hex))
-                        }
-                    )
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-            // Opacity Slider
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.opacity),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    val percent = (draftOpacity * 100).toInt()
-                    val transPercent = 100 - percent
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.opacity_value, percent, transPercent),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            text = stringResource(R.string.custom_widget_color),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.onSurface
+                        )
+
+                        // Color Wheel
+                        ColorWheelPicker(
+                            currentColor = Color(draftColor),
+                            onColorSelected = { selectedColor -> draftColor = selectedColor.toArgb() },
+                            onColorSelectionFinished = {
+                                onConfigChanged(config.copy(customColorHex = draftColor))
+                            }
+                        )
+
+                        // Color Palette Presets
+                        ColorPresets(
+                            selectedColorHex = draftColor,
+                            onColorSelected = { hex ->
+                                draftColor = hex
+                                onConfigChanged(config.copy(customColorHex = hex))
+                            }
                         )
                     }
                 }
+            }
 
-                Slider(
-                    value = draftOpacity,
-                    onValueChange = { newOpacity -> draftOpacity = newOpacity },
-                    onValueChangeFinished = { onConfigChanged(config.copy(opacity = draftOpacity)) },
-                    valueRange = 0.0f..1.0f
-                )
+            // Opacity Slider
+            Surface(
+                shape = ListItemDefaults.segmentedShapes(index = 3, count = itemCount).shape,
+                color = colors.surfaceContainer
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.opacity),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.onSurface
+                        )
+                        val percent = (draftOpacity * 100).toInt()
+                        val transPercent = 100 - percent
+                        Surface(
+                            shape = CircleShape,
+                            color = colors.primaryContainer
+                        ) {
+                            Text(
+                                text = stringResource(R.string.opacity_value, percent, transPercent),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+
+                    Slider(
+                        value = draftOpacity,
+                        onValueChange = { newOpacity -> draftOpacity = newOpacity },
+                        onValueChangeFinished = { onConfigChanged(config.copy(opacity = draftOpacity)) },
+                        valueRange = 0.0f..1.0f
+                    )
+                }
             }
         }
     }
@@ -581,21 +610,38 @@ private fun ColorPresets(
         ) {
             presets.forEach { colorInt ->
                 val isSelected = (selectedColorHex and 0x00FFFFFF) == (colorInt and 0x00FFFFFF)
+                // Selected swatch springs from a circle into a squircle
+                val cornerPercent by animateIntAsState(
+                    targetValue = if (isSelected) 30 else 50,
+                    animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                    label = "PresetCorner"
+                )
+                val shape = RoundedCornerShape(cornerPercent)
 
                 Box(
                     modifier = Modifier
                         .size(34.dp)
-                        .clip(CircleShape)
+                        .clip(shape)
                         .background(Color(colorInt))
                         .border(
-                            width = if (isSelected) 3.dp else 1.dp,
+                            width = if (isSelected) 2.dp else 1.dp,
                             color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.4f),
-                            shape = CircleShape
+                            shape = shape
                         )
                         .clickable {
                             onColorSelected(colorInt)
-                        }
-                )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
         }
     }
