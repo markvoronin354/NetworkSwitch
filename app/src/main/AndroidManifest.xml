@@ -99,8 +99,19 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="com.markvoronin.networkswitch.ACTION_SET_MODE" />
+                <action android:name="com.twofortyfouram.locale.intent.action.FIRE_SETTING" />
             </intent-filter>
         </receiver>
+
+        <!-- Makes the app show up in MacroDroid/Tasker plugin lists; lets the user pick the mode to set -->
+        <activity
+            android:name=".presentation.ui.activity.PluginEditActivity"
+            android:exported="true"
+            android:theme="@style/Theme.NetworkSwitch">
+            <intent-filter>
+                <action android:name="com.twofortyfouram.locale.intent.action.EDIT_SETTING" />
+            </intent-filter>
+        </activity>
 
         <!-- Shizuku Provider -->
         <provider

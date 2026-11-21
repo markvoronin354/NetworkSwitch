@@ -36,9 +36,11 @@ class AutomationReceiver : BroadcastReceiver() {
     lateinit var surfaceRefresher: SurfaceRefresher
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != ACTION_SET_MODE) return
-
-        val modeName = intent.getStringExtra(EXTRA_MODE)
+        val modeName = when (intent.action) {
+            ACTION_SET_MODE -> intent.getStringExtra(EXTRA_MODE)
+            ACTION_FIRE_SETTING -> intent.getBundleExtra(EXTRA_BUNDLE)?.getString(EXTRA_MODE)
+            else -> return
+        }
         val mode = NetworkMode.entries.find { it.name == modeName }
         if (mode == null) {
             Log.w(TAG, "Automation: ignoring unknown mode '$modeName'")
@@ -72,5 +74,9 @@ class AutomationReceiver : BroadcastReceiver() {
         const val TAG = "NetworkSwitch"
         const val ACTION_SET_MODE = "com.markvoronin.networkswitch.ACTION_SET_MODE"
         const val EXTRA_MODE = "mode"
+
+        // Tasker/Locale plugin contract, which is what MacroDroid's "Tasker/Locale Plugin" action uses
+        const val ACTION_FIRE_SETTING = "com.twofortyfouram.locale.intent.action.FIRE_SETTING"
+        const val EXTRA_BUNDLE = "com.twofortyfouram.locale.intent.extra.BUNDLE"
     }
 }

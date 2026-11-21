@@ -78,6 +78,9 @@
     <string name="automation_desc">Let apps like MacroDroid switch network modes by sending an intent.</string>
     <string name="automation_allow">Allow automation apps</string>
     <string name="automation_allow_desc">Any app on this device can then change your network mode</string>
+    <string name="plugin_set_mode">Set network mode</string>
+    <string name="plugin_save">Save</string>
+    <string name="plugin_blurb">Set mode: %1$s</string>
 
     <!-- Widget customization -->
     <string name="widget_customization">Widget Customization</string>
