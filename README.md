@@ -55,6 +55,64 @@ Network Switch provides granular control over device cellular network radio mode
 3. Save configuration.
 4. Tap the Quick Settings tile or main app toggle to switch between the two modes instantly.
 
+### Automation (MacroDroid, Tasker, etc.)
+Automation apps can switch to a specific network mode by sending a broadcast. It is off by default; turn on **Settings → Automation → Allow automation apps** first (any app on the device can then change your network mode).
+
+In MacroDroid, add the **Send Intent** action (**Add Action → Device Actions → Send Intent**):
+- **Action**: `com.markvoronin.networkswitch.ACTION_SET_MODE`
+- **Target**: Broadcast
+- **Package**: `com.markvoronin.networkswitch`
+- **Class**: `com.markvoronin.networkswitch.service.AutomationReceiver`
+- **Extra 1**: fill in the two boxes (leave the type on *Auto Detect Type*; leave Extra 2 and up empty):
+  - first box (parameter name): `mode`, typed exactly like this
+  - second box (value): the network mode to switch to, e.g. `NR_LTE` (4G/5G), `LTE_ONLY` or `NR_ONLY`. See the [full list of values](#mode-names-for-the-mode-extra) below.
+
+  One broadcast sets one mode. To switch between modes, create one macro per mode.
+
+From a shell: `adb shell am broadcast -a com.markvoronin.networkswitch.ACTION_SET_MODE -n com.markvoronin.networkswitch/.service.AutomationReceiver --es mode NR_LTE`
+
+Usually nothing else is needed. If broadcasts are delayed or missed, check the battery restrictions for MacroDroid first (it has to be running to send the intent), then for Network Switch.
+
+#### Mode names for the `mode` extra
+Names are case-sensitive; unknown names are ignored.
+
+| `mode` value | Network mode |
+|---|---|
+| `GSM_ONLY` | 2G Only (GSM) |
+| `WCDMA_ONLY` | 3G Only (WCDMA) |
+| `LTE_ONLY` | 4G Only (LTE) |
+| `NR_ONLY` | 5G Only (NR) |
+| `WCDMA_PREF` | 2G/3G (3G Preferred) |
+| `GSM_UMTS` | 2G/3G (Auto) |
+| `LTE_GSM_WCDMA` | 2G/3G/4G (LTE/GSM/WCDMA) |
+| `LTE_WCDMA` | 3G/4G (LTE/WCDMA) |
+| `NR_LTE` | 4G/5G (NR/LTE) |
+| `NR_LTE_GSM_WCDMA` | 2G/3G/4G/5G (NR/LTE/GSM/WCDMA) |
+| `NR_LTE_WCDMA` | 3G/4G/5G (NR/LTE/WCDMA) |
+| `CDMA` | CDMA (Auto) |
+| `CDMA_NO_EVDO` | CDMA Only |
+| `EVDO_NO_CDMA` | EvDo Only |
+| `LTE_CDMA_EVDO` | CDMA/4G (LTE/CDMA/EvDo) |
+| `NR_LTE_CDMA_EVDO` | CDMA/4G/5G (NR/LTE/CDMA/EvDo) |
+| `GLOBAL` | Global (All) |
+| `LTE_CDMA_EVDO_GSM_WCDMA` | Global 4G (LTE/CDMA/EvDo/GSM/WCDMA) |
+| `NR_LTE_CDMA_EVDO_GSM_WCDMA` | Global 5G (NR/LTE/CDMA/EvDo/GSM/WCDMA) |
+| `TDSCDMA_ONLY` | TD-SCDMA Only |
+| `TDSCDMA_WCDMA` | 3G (TD-SCDMA/WCDMA) |
+| `LTE_TDSCDMA` | 4G (LTE/TD-SCDMA) |
+| `TDSCDMA_GSM` | 2G/TD-SCDMA |
+| `LTE_TDSCDMA_GSM` | 2G/4G (LTE/TD-SCDMA/GSM) |
+| `TDSCDMA_GSM_WCDMA` | 2G/3G (TD-SCDMA/GSM/WCDMA) |
+| `LTE_TDSCDMA_WCDMA` | 3G/4G (LTE/TD-SCDMA/WCDMA) |
+| `LTE_TDSCDMA_GSM_WCDMA` | 2G/3G/4G (LTE/TD-SCDMA/GSM/WCDMA) |
+| `TDSCDMA_CDMA_EVDO_GSM_WCDMA` | Global 3G (TD-SCDMA/CDMA/EvDo/GSM/WCDMA) |
+| `LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA` | Global 4G (LTE/TD-SCDMA/CDMA/EvDo/GSM/WCDMA) |
+| `NR_LTE_TDSCDMA` | 4G/5G (NR/LTE/TD-SCDMA) |
+| `NR_LTE_TDSCDMA_GSM` | 2G/4G/5G (NR/LTE/TD-SCDMA/GSM) |
+| `NR_LTE_TDSCDMA_WCDMA` | 3G/4G/5G (NR/LTE/TD-SCDMA/WCDMA) |
+| `NR_LTE_TDSCDMA_GSM_WCDMA` | 2G/3G/4G/5G (NR/LTE/TD-SCDMA/GSM/WCDMA) |
+| `NR_LTE_TDSCDMA_CDMA_EVDO_GSM_WCDMA` | Global 5G + TD-SCDMA (All Networks) |
+
 ## Screenshots
 
 <div align="center">

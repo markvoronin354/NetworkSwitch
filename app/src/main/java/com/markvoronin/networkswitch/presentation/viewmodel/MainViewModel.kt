@@ -122,6 +122,8 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.observeToggleModeConfig().collectLatest { newConfig ->
                 toggleModeConfig = newConfig
+                // The mode may have been changed from outside (e.g. an automation app) while the screen is open
+                if (compatibilityState is CompatibilityState.Compatible && !isLoading) refreshNetworkState()
             }
         }
     }

@@ -101,6 +101,21 @@ interface PreferencesRepository {
     fun observeWidgetCustomizationConfig(): Flow<WidgetCustomizationConfig>
 
     /**
+     * Whether other apps (e.g. MacroDroid) may change the network mode by broadcast. Off by default.
+     */
+    suspend fun isAutomationEnabled(): Boolean
+
+    /**
+     * Allow or block automation apps from changing the network mode
+     */
+    suspend fun setAutomationEnabled(enabled: Boolean)
+
+    /**
+     * Observe automation access changes
+     */
+    fun observeAutomationEnabled(): Flow<Boolean>
+
+    /**
      * Observe the last speed test result (bits per second) for each network mode that has one
      */
     fun observeSpeedTestResults(): Flow<Map<NetworkMode, Long>>

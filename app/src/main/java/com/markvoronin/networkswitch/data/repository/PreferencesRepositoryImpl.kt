@@ -60,6 +60,18 @@ class PreferencesRepositoryImpl @Inject constructor(
         return preferencesDataSource.observeWidgetCustomizationConfig()
     }
 
+    override suspend fun isAutomationEnabled(): Boolean {
+        return preferencesDataSource.isAutomationEnabled()
+    }
+
+    override suspend fun setAutomationEnabled(enabled: Boolean) {
+        preferencesDataSource.setAutomationEnabled(enabled)
+    }
+
+    override fun observeAutomationEnabled(): Flow<Boolean> {
+        return preferencesDataSource.observeAutomationEnabled()
+    }
+
     override fun observeSpeedTestResults(): Flow<Map<NetworkMode, Long>> {
         return preferencesDataSource.observeSpeedTestResults()
     }

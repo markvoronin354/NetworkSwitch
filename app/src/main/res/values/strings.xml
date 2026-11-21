@@ -73,6 +73,12 @@
     <string name="about_source_code">Source Code on GitHub</string>
     <string name="about_licenses">Open Source Licenses</string>
 
+    <!-- Automation -->
+    <string name="automation">Automation</string>
+    <string name="automation_desc">Let apps like MacroDroid switch network modes by sending an intent.</string>
+    <string name="automation_allow">Allow automation apps</string>
+    <string name="automation_allow_desc">Any app on this device can then change your network mode</string>
+
     <!-- Widget customization -->
     <string name="widget_customization">Widget Customization</string>
     <string name="widget_customization_desc">Personalize the appearance of your home screen widget</string>

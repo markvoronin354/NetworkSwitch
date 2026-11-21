@@ -71,6 +71,7 @@ private fun SettingsScreen(
 ) {
     val controlMethod by viewModel.controlMethod.collectAsState()
     val widgetCustomization by viewModel.widgetCustomization.collectAsState()
+    val automationEnabled by viewModel.automationEnabled.collectAsState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -110,6 +111,12 @@ private fun SettingsScreen(
                 rootCompatibility = viewModel.rootCompatibility,
                 shizukuCompatibility = viewModel.shizukuCompatibility,
                 onRetryClick = { viewModel.retryCompatibilityCheck() }
+            )
+
+            // Automation Card
+            AutomationCard(
+                enabled = automationEnabled,
+                onEnabledChange = { viewModel.updateAutomationEnabled(it) }
             )
 
             // Widget Customization Card
@@ -217,6 +224,29 @@ private fun ControlMethodOption(
         supportingContent = { Text(subtitle) },
         content = { Text(text = title, fontWeight = FontWeight.SemiBold) }
     )
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun AutomationCard(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionHeader(
+            title = stringResource(R.string.automation),
+            description = stringResource(R.string.automation_desc)
+        )
+
+        SegmentedListItem(
+            onClick = { onEnabledChange(!enabled) },
+            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+            colors = segmentedItemColors(),
+            trailingContent = { Switch(checked = enabled, onCheckedChange = null) },
+            supportingContent = { Text(stringResource(R.string.automation_allow_desc)) },
+            content = { Text(text = stringResource(R.string.automation_allow), fontWeight = FontWeight.SemiBold) }
+        )
+    }
 }
 
 private val licenses = listOf(

@@ -31,6 +31,7 @@ class PreferencesDataSource @Inject constructor(
         private val WIDGET_USE_SYSTEM_COLOR_KEY = booleanPreferencesKey("widget_use_system_color")
         private val WIDGET_CUSTOM_COLOR_KEY = intPreferencesKey("widget_custom_color")
         private val WIDGET_OPACITY_KEY = floatPreferencesKey("widget_opacity")
+        private val AUTOMATION_ENABLED_KEY = booleanPreferencesKey("automation_enabled")
 
         private val DEFAULT_CONTROL_METHOD = ControlMethod.SHIZUKU
 
@@ -41,6 +42,8 @@ class PreferencesDataSource @Inject constructor(
         private const val DEFAULT_USE_SYSTEM_COLOR = true
         private const val DEFAULT_CUSTOM_COLOR = 0xFF333333.toInt()
         private const val DEFAULT_OPACITY = 0.50f
+
+        private const val DEFAULT_AUTOMATION_ENABLED = false
     }
 
     private fun speedTestKey(mode: NetworkMode) = longPreferencesKey("speed_test_${mode.name}")
@@ -99,6 +102,17 @@ class PreferencesDataSource @Inject constructor(
 
     fun observeWidgetCustomizationConfig(): Flow<WidgetCustomizationConfig> =
         dataStore.data.map { it.toWidgetCustomizationConfig() }
+
+    suspend fun isAutomationEnabled(): Boolean = observeAutomationEnabled().first()
+
+    suspend fun setAutomationEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[AUTOMATION_ENABLED_KEY] = enabled
+        }
+    }
+
+    fun observeAutomationEnabled(): Flow<Boolean> =
+        dataStore.data.map { it[AUTOMATION_ENABLED_KEY] ?: DEFAULT_AUTOMATION_ENABLED }
 
     fun observeSpeedTestResults(): Flow<Map<NetworkMode, Long>> =
         dataStore.data.map { preferences ->

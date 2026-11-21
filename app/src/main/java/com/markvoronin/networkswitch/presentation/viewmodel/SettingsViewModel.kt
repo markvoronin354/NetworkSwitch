@@ -44,6 +44,13 @@ class SettingsViewModel @Inject constructor(
                 initialValue = WidgetCustomizationConfig()
             )
     
+    val automationEnabled: StateFlow<Boolean> = preferencesRepository.observeAutomationEnabled()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     // Compatibility status for each method
     var rootCompatibility by mutableStateOf<CompatibilityState>(CompatibilityState.Pending)
         private set
@@ -90,6 +97,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
     
+    fun updateAutomationEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setAutomationEnabled(enabled)
+        }
+    }
+
     private var compatibilityJob: Job? = null
 
     private fun checkAllCompatibility() {

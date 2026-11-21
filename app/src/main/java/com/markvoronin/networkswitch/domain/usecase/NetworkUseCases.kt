@@ -63,6 +63,40 @@ class ToggleNetworkModeUseCase @Inject constructor(
 }
 
 /**
+ * Use case for switching to one specific network mode, e.g. when an automation app asks for it.
+ * When the mode is one of the toggle pair, the stored toggle state follows it so "Next: ..."
+ * stays right on the tile, widget and main screen.
+ */
+class SetNetworkModeUseCase @Inject constructor(
+    private val networkControlRepository: NetworkControlRepository,
+    private val preferencesRepository: PreferencesRepository
+) {
+    suspend operator fun invoke(subId: Int, mode: NetworkMode): Result<Unit> {
+        return try {
+            val result = networkControlRepository.setNetworkMode(subId, mode)
+            if (result.isSuccess) syncToggleState(mode)
+            result
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun syncToggleState(mode: NetworkMode) {
+        val config = preferencesRepository.getToggleModeConfig()
+        val isModeA = mode.technologies == config.modeA.technologies
+        val isModeB = mode.technologies == config.modeB.technologies
+        val synced = when {
+            isModeA && !isModeB -> config.copy(nextModeIsB = true)
+            isModeB && !isModeA -> config.copy(nextModeIsB = false)
+            else -> return
+        }
+        if (synced != config) preferencesRepository.setToggleModeConfig(synced)
+    }
+}
+
+/**
  * Use case for getting current network mode
  */
 class GetCurrentNetworkModeUseCase @Inject constructor(

@@ -93,6 +93,15 @@
             android:name=".service.WidgetToggleReceiver"
             android:exported="false" />
 
+        <!-- Automation apps (MacroDroid etc.); exported, but ignores requests unless enabled in Settings -->
+        <receiver
+            android:name=".service.AutomationReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.markvoronin.networkswitch.ACTION_SET_MODE" />
+            </intent-filter>
+        </receiver>
+
         <!-- Shizuku Provider -->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
