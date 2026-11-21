@@ -58,7 +58,9 @@ Network Switch provides granular control over device cellular network radio mode
 ### Automation (MacroDroid, Tasker, etc.)
 Automation apps can switch to a specific network mode by sending a broadcast. It is off by default; turn on **Settings → Automation → Allow automation apps** first (any app on the device can then change your network mode).
 
-In MacroDroid, add the **Send Intent** action (**Add Action → Device Actions → Send Intent**):
+The easiest way in MacroDroid is the plugin action: **Add Action → Applications → Tasker/Locale Plugin**, then pick **Network Switch** and choose the mode. Tasker offers the same under **Action → Plugin**.
+
+Alternatively, add the **Send Intent** action (**Add Action → Device Actions → Send Intent**):
 - **Action**: `com.markvoronin.networkswitch.ACTION_SET_MODE`
 - **Target**: Broadcast
 - **Package**: `com.markvoronin.networkswitch`
